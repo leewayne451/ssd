@@ -1,0 +1,16 @@
+/*
+ * Château Collective — Custom Styles
+ * Phase 0: placeholder only.
+ * Custom styles will be added in Phase 1+ once UI components are defined.
+ */
+
+/* Example baseline — override Bootstrap body font if desired */
+body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+main {
+    flex: 1;
+}

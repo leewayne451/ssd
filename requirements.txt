@@ -1,0 +1,11 @@
+# Château Collective — Runtime dependencies
+# Install with: pip install -r requirements.txt
+#
+# Keep development/security tooling in requirements-dev.txt.
+# Pin to known-good versions; update deliberately after review.
+
+Flask==3.1.1
+Flask-SQLAlchemy==3.1.1
+Flask-Migrate==4.1.0
+Werkzeug==3.1.3
+python-dotenv==1.1.0
