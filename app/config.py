@@ -95,7 +95,7 @@ class ProductionConfig(Config):
         Phase 1+ should invoke this inside create_app() when config_name=='production'.
         """
         secret = os.environ.get("SECRET_KEY")
-        if not secret or secret == "dev-insecure-placeholder-change-me":
+        if not secret or secret == "dev-insecure-placeholder-change-me":  # nosec B105
             raise RuntimeError(
                 "SECRET_KEY environment variable is not set or is using the "
                 "insecure placeholder. Set a strong random value before running "
