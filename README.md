@@ -207,13 +207,13 @@ The current repository structure is:
 ```text
 ICT2216_Secure-Software-Development/
 |-- .github
-|   +-- workflows
-|       |-- ci.yml
-|       |-- deploy-aws.yml
-|       |-- security-scan.yml
-|       +-- zap-baseline.yml
+|   +-- workflows                           # CI/CD pipelines
+|       |-- ci.yml                          # pytest + lint + pip-audit
+|       |-- deploy-aws.yml                  # Auto-deploy to AWS VM
+|       |-- security-scan.yml               # Bandit + Semgrep   
+|       +-- zap-baseline.yml                # OWASP ZAP DAST
 |-- app
-|   |-- models
+|   |-- models                              # ── Data/Storage Layer ──
 |   |   |-- __init__.py
 |   |   |-- audit_log.py
 |   |   |-- authentication_review.py
@@ -221,7 +221,7 @@ ICT2216_Secure-Software-Development/
 |   |   |-- cart.py
 |   |   |-- cart_item.py
 |   |   |-- dispute.py
-|   |   |-- enums.py
+|   |   |-- enums.py                        # Workflow states, roles, statuses
 |   |   |-- order.py
 |   |   |-- order_status_history.py
 |   |   |-- product_listing.py
@@ -232,9 +232,8 @@ ICT2216_Secure-Software-Development/
 |   |   |-- shipment.py
 |   |   |-- uploaded_file.py
 |   |   +-- user.py
-|   |-- repositories
-|   |   +-- __init__.py
-|   |-- security
+|   |-- repositories                        # DB query abstraction
+|   |-- security                            # ── Edge Protection Layer ──
 |   |   |-- __init__.py
 |   |   |-- admin_2fa.py
 |   |   |-- csrf.py
@@ -247,7 +246,7 @@ ICT2216_Secure-Software-Development/
 |   |   |-- rate_limit.py
 |   |   |-- rbac.py
 |   |   +-- session_policy.py
-|   |-- services
+|   |-- services                            # ── Business Service Layer ──
 |   |   |-- __init__.py
 |   |   |-- admin_service.py
 |   |   |-- audit_service.py
@@ -264,12 +263,12 @@ ICT2216_Secure-Software-Development/
 |   |   |-- upload_service.py
 |   |   |-- user_service.py
 |   |   +-- workflow_service.py
-|   |-- utils
+|   |-- utils                               # Shared helpers
 |   |   |-- __init__.py
 |   |   |-- audit.py
 |   |   +-- decorators.py
-|   |-- web
-|   |   |-- forms
+|   |-- web                                 # ── Web Application Layer ──
+|   |   |-- forms                           # Server-side form validation
 |   |   |   |-- __init__.py
 |   |   |   |-- admin_forms.py
 |   |   |   |-- auth_forms.py
@@ -280,7 +279,7 @@ ICT2216_Secure-Software-Development/
 |   |   |   |-- profile_forms.py
 |   |   |   |-- review_forms.py
 |   |   |   +-- seller_forms.py
-|   |   |-- routes
+|   |   |-- routes                          # Flask route modules (NOT blueprints)
 |   |   |   |-- __init__.py
 |   |   |   |-- admin_routes.py
 |   |   |   |-- auth_routes.py
@@ -294,104 +293,65 @@ ICT2216_Secure-Software-Development/
 |   |   |   |-- review_routes.py
 |   |   |   |-- seller_routes.py
 |   |   |   +-- shipment_routes.py
-|   |   |-- static
+|   |   |-- static                          # CSS, JS, images
 |   |   |   |-- css
-|   |   |   |   +-- main.css
 |   |   |   |-- img
-|   |   |   |   +-- .gitkeep
 |   |   |   +-- js
-|   |   |       +-- main.js
-|   |   |-- templates
+|   |   |-- templates                       # ── Client Layer ──
 |   |   |   |-- admin
-|   |   |   |   +-- .gitkeep
 |   |   |   |-- auth
-|   |   |   |   +-- .gitkeep
 |   |   |   |-- cart
-|   |   |   |   +-- .gitkeep
 |   |   |   |-- disputes
-|   |   |   |   +-- .gitkeep
 |   |   |   |-- errors
-|   |   |   |   |-- 400.html
-|   |   |   |   |-- 403.html
-|   |   |   |   |-- 404.html
-|   |   |   |   +-- 500.html
 |   |   |   |-- listings
-|   |   |   |   +-- .gitkeep
 |   |   |   |-- orders
-|   |   |   |   +-- .gitkeep
 |   |   |   |-- profile
-|   |   |   |   +-- .gitkeep
 |   |   |   |-- public
 |   |   |   |   +-- index.html
 |   |   |   |-- reviews
-|   |   |   |   +-- .gitkeep
 |   |   |   |-- seller
-|   |   |   |   +-- .gitkeep
 |   |   |   |-- shipments
-|   |   |   |   +-- .gitkeep
 |   |   |   +-- base.html
-|   |   +-- __init__.py
-|   |-- __init__.py
-|   |-- config.py
-|   |-- extensions.py
-|   +-- logging_config.py
-|-- deploy
+|   |-- __init__.py                         # App factory
+|   |-- config.py                           # Config (dev/test/prod)
+|   |-- extensions.py                       # SQLAlchemy, Migrate, CSRF init
+|   +-- logging_config.py                   # Audit + security log setup
+|-- deploy                                  # Nginx, Gunicorn, systemd, AWS scripts
 |   |-- aws
-|   |   +-- .gitkeep
 |   |-- gunicorn
-|   |   +-- gunicorn.conf.py
 |   |-- nginx
-|   |   +-- chateau-collective.conf
 |   |-- scripts
-|   |   +-- .gitkeep
 |   +-- systemd
 |       +-- chateau-collective.service
-|-- doc
-|   |-- ICT2116_P2_team31_Deliverable_One.pdf
-|   |-- Lecture 5.5 Second Half Intro AY2025T3.pdf
-|   |-- project_description.pdf
-|   +-- proposal.pdf
-|-- docs
+|-- docs                                    # Documentations
 |   |-- architecture
-|   |   +-- .gitkeep
 |   |-- d1
-|   |   +-- .gitkeep
 |   |-- d2
-|   |   +-- .gitkeep
 |   +-- qa
-|       +-- .gitkeep
-|-- instance
-|   +-- .gitkeep
-|-- migrations
+|-- instance                                # SQLite DB (gitignored)
+|-- migrations                              # Alembic migrations
 |   +-- versions
-|       +-- .gitkeep
-|-- security
+|-- security                                # Bandit/Semgrep configs, ZAP context
 |   |-- zap
 |   |   +-- zap-baseline.conf
 |   |-- bandit.yaml
 |   +-- semgrep.yaml
 |-- tests
-|   |-- integration
-|   |   +-- __init__.py
-|   |-- security
-|   |   +-- __init__.py
+|   |-- integration                         # End-to-end flow tests
+|   |-- security                            # OWASP-specific tests
 |   |-- unit
 |   |   |-- models
-|   |   |   +-- __init__.py
 |   |   |-- security
-|   |   |   +-- __init__.py
-|   |   |-- services
-|   |   |   +-- __init__.py
-|   |   +-- __init__.py
+|   |   +-- services
 |   |-- conftest.py
 |   +-- test_app_boots.py
 |-- .env.example
 |-- .gitignore
-|-- manage.py
+|-- manage.py                               # CLI commands
 |-- README.md
 |-- requirements.txt
 |-- requirements-dev.txt
-+-- wsgi.py
++-- wsgi.py                                 # WSGI entry point
 ```
 
 ## Setup Instructions
