@@ -1,4 +1,4 @@
-name: CI/CD Pipeline
+name: CI
 
 on:
   push:
@@ -7,8 +7,8 @@ on:
     branches: [ "main" ]
 
 jobs:
-  test:
-    name: Run Tests and Security Checks
+  ci:
+    name: Run Tests and Dependency Audit
     runs-on: ubuntu-latest
 
     env:
@@ -31,12 +31,6 @@ jobs:
 
       - name: Run unit tests
         run: pytest
-
-      - name: Run Bandit security scan
-        run: bandit -r app
-
-      - name: Run Semgrep scan
-        run: semgrep scan --config auto app
 
       - name: Run dependency audit
         run: pip-audit

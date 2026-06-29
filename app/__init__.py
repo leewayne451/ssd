@@ -1,29 +1,18 @@
-"""
-Château Collective — Application Factory
-Phase 0: skeleton only. No business logic, auth, or models yet.
-"""
-
 import os
-from flask import Flask, jsonify
+from flask import Flask
 
 from .extensions import db, migrate
 from .config import config_map
 
 
-def create_app(config_name: str | None = None) -> Flask:
-    """
-    Application factory.
+def create_app(config_name=None):
+    app = Flask(
+        __name__,
+        instance_relative_config=True,
+        template_folder="web/templates",
+        static_folder="web/static",
+    )
 
-    Args:
-        config_name: One of 'development', 'testing', 'production'.
-                     Falls back to the FLASK_ENV environment variable,
-                     then to 'development'.
-    """
-    app = Flask(__name__, instance_relative_config=True)
-
-    # ------------------------------------------------------------------
-    # Configuration
-    # ------------------------------------------------------------------
     if config_name is None:
         config_name = os.environ.get("FLASK_ENV", "development")
 
@@ -35,36 +24,21 @@ def create_app(config_name: str | None = None) -> Flask:
         )
     app.config.from_object(cfg_class)
 
-    # Ensure the instance folder exists (SQLite db lives here)
     try:
         os.makedirs(app.instance_path, exist_ok=True)
     except OSError:
         pass
 
-    # ------------------------------------------------------------------
-    # Extensions
-    # ------------------------------------------------------------------
     db.init_app(app)
     migrate.init_app(app, db)
 
-    # ------------------------------------------------------------------
-    # Blueprints
-    # ------------------------------------------------------------------
-    _register_blueprints(app)
+    from .logging_config import configure_logging
+    configure_logging(app)
+
+    from .security.headers import apply_security_headers
+    apply_security_headers(app)
+
+    from .web.routes import register_routes
+    register_routes(app)
 
     return app
-
-
-def _register_blueprints(app: Flask) -> None:
-    """Register all application blueprints."""
-    # Phase 0 placeholder — a single healthcheck blueprint.
-    # This will be replaced / extended in Phase 1.
-    from flask import Blueprint
-
-    health_bp = Blueprint("health", __name__)
-
-    @health_bp.route("/healthz")
-    def healthz():
-        return jsonify({"status": "ok"}), 200
-
-    app.register_blueprint(health_bp)
