@@ -4,7 +4,7 @@ from app.extensions import db
 from app.models.audit_log import AuditLog
 
 
-def record(actor, action_type, target_type=None, target_id=None, details=None):
+def record(actor, action, target=None, target_id=None, meta=None):
     """
     Writes one row to the audit log.
 
@@ -20,10 +20,10 @@ def record(actor, action_type, target_type=None, target_id=None, details=None):
     try:
         entry = AuditLog(
             actor_user_id=actor.id if actor else None,
-            action_type=action_type,
-            target_type=target_type,
+            action_type=action,
+            target_type=target,
             target_id=target_id,
-            details=details,
+            details=str(meta) if meta else None,
             source_ip=request.remote_addr if request else None,
             user_agent=request.headers.get("User-Agent") if request else None,
         )
