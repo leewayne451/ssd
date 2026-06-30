@@ -1,5 +1,5 @@
 import os
-from flask import Flask
+from flask import Flask, request, flash, redirect, url_for, session
 
 from .extensions import db, migrate
 from .config import config_map
@@ -31,6 +31,8 @@ def create_app(config_name=None):
 
     db.init_app(app)
     migrate.init_app(app, db)
+    
+    from . import models
 
     from .logging_config import configure_logging
     configure_logging(app)
@@ -40,5 +42,25 @@ def create_app(config_name=None):
 
     from .web.routes import register_routes
     register_routes(app)
+
+    from app.utils.decorators import inject_current_user
+    app.context_processor(inject_current_user)
+
+    from app.security.session_policy import check_inactivity_timeout, set_activity_timestamp
+
+    @app.before_request
+    def check_session_timeout():
+        # Skip for static files and public routes
+        if request.endpoint in ['static', 'auth.login', 'auth.register']:
+            return
+        
+        if 'user_id' not in session:
+            return
+        
+        if not check_inactivity_timeout():
+            flash('Session timed out due to inactivity.', 'warning')
+            return redirect(url_for('auth.login'))
+        
+        set_activity_timestamp()
 
     return app
