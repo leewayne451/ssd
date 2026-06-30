@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Listings</h1>
+<ul>
+  {% for l in listings %}
+    <li>
+      <a href="/listings/{{ l.id }}">{{ l.title }}</a> — {{ l.price }}
+    </li>
+  {% else %}
+    <li>No listings available.</li>
+  {% endfor %}
+</ul>
+{% endblock %}
