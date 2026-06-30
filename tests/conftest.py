@@ -1,62 +1,139 @@
 """
-Château Collective — Pytest fixtures (Phase 0)
+Chateau Collective -- Pytest fixtures
 
 Provides:
-  - app     : configured Flask application in testing mode
-  - client  : Flask test client
-  - db_session : SQLAlchemy session scoped to each test (ready for Phase 1 models)
+  - app           : session-scoped Flask app in testing mode
+  - client        : function-scoped, fresh Flask test client
+  - db_session    : function-scoped, SAVEPOINT-isolated SQLAlchemy session
+  - make_user     : factory for creating User rows in the test DB
+  - buyer         : pre-built buyer User
+  - seller_user   : pre-built seller User
+  - admin_user    : pre-built admin User
+  - auth_client   : test client with a logged-in buyer session
+
+Usage for teammates (Phase 1+):
+    def test_something(buyer, db_session, client):
+        assert buyer.role.value == "buyer"
+
+    def test_protected(auth_client):
+        resp = auth_client.get("/profile")
+        assert resp.status_code == 200
 """
 
 import pytest
+from werkzeug.security import generate_password_hash
+
 from app import create_app
 from app.extensions import db as _db
+from app.models.user import User
+from app.models.enums import UserRole
 
+
+# ---------------------------------------------------------------------------
+# App + DB setup
+# ---------------------------------------------------------------------------
 
 @pytest.fixture(scope="session")
 def app():
     """
     Create a Flask application configured for the test suite.
-    Session-scoped so the app is created once per test run.
+    Session-scoped: created once, torn down after the full test run.
     """
     flask_app = create_app("testing")
 
-    # Push an application context for the duration of the session
     ctx = flask_app.app_context()
     ctx.push()
 
-    # Create all tables (no-op in Phase 0 — no models yet, but safe to call)
     _db.create_all()
 
     yield flask_app
 
-    # Teardown
     _db.drop_all()
     ctx.pop()
 
 
 @pytest.fixture()
 def client(app):
-    """
-    Flask test client.
-    Function-scoped so each test gets a fresh client with a clean cookie jar.
-    """
+    """Flask test client -- fresh per test (clean cookie jar)."""
     return app.test_client()
 
 
 @pytest.fixture()
 def db_session(app):
     """
-    SQLAlchemy database session, rolled back after each test to keep
-    tests isolated. Ready to use in Phase 1+ once models exist.
+    SQLAlchemy session isolated via SAVEPOINT.
+
+    All writes inside a test are rolled back when the test finishes.
+    Uses SA 2.x begin_nested() -- avoids the deprecated session.bind pattern.
+
+    Downstream fixtures (make_user, buyer, etc.) depend on this fixture;
+    their data is automatically rolled back with it.
     """
-    connection = _db.engine.connect()
-    transaction = connection.begin()
-
-    # Bind the session to the connection so all queries run inside the transaction
-    _db.session.bind = connection  # type: ignore[attr-defined]
-
+    nested = _db.session.begin_nested()   # SAVEPOINT
     yield _db.session
+    nested.rollback()                      # revert to pre-SAVEPOINT state
+    _db.session.remove()                   # reset scoped session for next test
 
-    _db.session.remove()
-    transaction.rollback()
-    connection.close()
+
+# ---------------------------------------------------------------------------
+# User factory and role fixtures
+# ---------------------------------------------------------------------------
+
+@pytest.fixture()
+def make_user(db_session):
+    """
+    Factory function: creates a User row in the test DB.
+
+        user = make_user("alice@test.local", role=UserRole.SELLER)
+
+    The row is flushed (PK assigned) but not committed; it rolls back
+    automatically when db_session teardown runs.
+    """
+    def _factory(email, password="Test1234!", role=UserRole.BUYER):
+        user = User(
+            email=email,
+            password_hash=generate_password_hash(password),
+            role=role,
+        )
+        db_session.add(user)
+        db_session.flush()  # get PK without committing
+        return user
+
+    return _factory
+
+
+@pytest.fixture()
+def buyer(make_user):
+    """A ready-to-use buyer User (role=BUYER)."""
+    return make_user("buyer@test.local", role=UserRole.BUYER)
+
+
+@pytest.fixture()
+def seller_user(make_user):
+    """A ready-to-use seller User (role=SELLER)."""
+    return make_user("seller@test.local", role=UserRole.SELLER)
+
+
+@pytest.fixture()
+def admin_user(make_user):
+    """A ready-to-use admin User (role=ADMIN)."""
+    return make_user("admin@test.local", role=UserRole.ADMIN)
+
+
+# ---------------------------------------------------------------------------
+# Authenticated test client
+# ---------------------------------------------------------------------------
+
+@pytest.fixture()
+def auth_client(client, buyer):
+    """
+    Test client with an active buyer session.
+
+    Sets session keys directly -- no HTTP login round-trip required.
+    Key names (user_id, user_role) must match what M1 writes on login.
+    Update them here once auth_routes.py finalises the session contract.
+    """
+    with client.session_transaction() as sess:
+        sess["user_id"] = buyer.id
+        sess["user_role"] = buyer.role.value
+    return client

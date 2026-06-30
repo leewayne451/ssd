@@ -1,8 +1,14 @@
 name: OWASP ZAP Baseline Scan
 
+# Gated to manual dispatch during development (Phase 1).
+# Re-enable push trigger once the app is deployed and APP_URL secret is set.
 on:
-  push:
-    branches: [ "main" ]
+  workflow_dispatch:
+    inputs:
+      target_url:
+        description: "Target URL to scan (e.g. https://your-domain.com)"
+        required: true
+        default: "https://placeholder.example.com"
 
 jobs:
   zap-baseline:
@@ -10,11 +16,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Update the target URL for the staging or production environment.
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Set APP_URL secret in repo Settings once AWS deploy is live, then
+      # replace inputs.target_url with secrets.APP_URL and restore push trigger.
       - name: Run ZAP baseline scan
         uses: zaproxy/action-baseline@v0.14.0
         with:
-          target: "http://localhost:5000"
+          target: ${{ github.event.inputs.target_url }}
           rules_file_name: security/zap/zap-baseline.conf
           fail_action: warn
           allow_issue_writing: false

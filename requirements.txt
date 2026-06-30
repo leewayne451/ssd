@@ -1,4 +1,4 @@
-# Château Collective — Runtime dependencies
+# Chateau Collective -- Runtime dependencies
 # Install with: pip install -r requirements.txt
 #
 # Keep development/security tooling in requirements-dev.txt.
