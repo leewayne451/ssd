@@ -54,7 +54,7 @@
                     </li>
 
                     <!-- Authentication links based on login status -->
-                    {% if current_user && current_user.is_authenticated %}
+                    {% if current_user %}
                         <!-- Logged in: Show user email and logout -->
                         <li class="nav-item">
                             <span class="navbar-text text-light me-2">
