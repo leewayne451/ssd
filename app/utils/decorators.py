@@ -23,6 +23,8 @@ Intended usage (Phase 1+):
 
 from functools import wraps
 from typing import Callable
+from flask import session
+from app.services.user_service import get_user_by_id
 
 
 def role_required(*roles: str) -> Callable:
@@ -82,3 +84,13 @@ def ownership_required(resource_type: str, id_param: str = "id") -> Callable:
         return wrapper
 
     return decorator
+
+
+def get_current_user():
+    user_id = session.get('user_id')
+    if user_id:
+        return get_user_by_id(user_id)
+    return None
+
+def inject_current_user():
+    return {'current_user': get_current_user()}
