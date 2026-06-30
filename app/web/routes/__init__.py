@@ -18,6 +18,16 @@ def register_routes(app):
     app.register_blueprint(profile_bp)
     app.register_blueprint(seller_bp)
     app.register_blueprint(listing_bp)
+    # Register helper to fetch uploads for templates
+    from app.models.uploaded_file import UploadedFile
+
+    def _get_listing_uploads(listing_id):
+        try:
+            return UploadedFile.query.filter_by(listing_id=listing_id).all()
+        except Exception:
+            return []
+
+    app.jinja_env.globals['get_listing_uploads'] = _get_listing_uploads
     app.register_blueprint(cart_bp)
     app.register_blueprint(order_bp)
     app.register_blueprint(shipment_bp)

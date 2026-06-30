@@ -54,7 +54,7 @@
                     </li>
 
                     <!-- Authentication links based on login status -->
-                    {% if current_user %}
+                    {% if current_user && current_user.is_authenticated %}
                         <!-- Logged in: Show user email and logout -->
                         <li class="nav-item">
                             <span class="navbar-text text-light me-2">
@@ -64,6 +64,11 @@
                         <li class="nav-item">
                             <a class="nav-link" href="{{ url_for('auth.logout') }}">Log out</a>
                         </li>
+                        {% if session.get('role') == 'seller' %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="/seller/listings/create">Create listing</a>
+                        </li>
+                        {% endif %}
                     {% else %}
                         <!-- Logged out: Show login and register -->
                         <li class="nav-item">
@@ -73,6 +78,7 @@
                             <a class="nav-link" href="{{ url_for('auth.register') }}">Register</a>
                         </li>
                     {% endif %}
+                    
                 </ul>
             </div>
         </div>
