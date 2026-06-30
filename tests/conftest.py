@@ -7,7 +7,17 @@ Provides:
   - db_session : SQLAlchemy session scoped to each test (ready for Phase 1 models)
 """
 
+import os
+import sys
 import pytest
+
+# Ensure the project root (ssd/) is on sys.path so top-level imports like
+# `from app import create_app` work when running pytest from the project
+# or workspace root.
+root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if root not in sys.path:
+    sys.path.insert(0, root)
+
 from app import create_app
 from app.extensions import db as _db
 

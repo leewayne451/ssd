@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ listing.title }}</h1>
+<p>Price: {{ listing.price }}</p>
+<div>{{ listing.description }}</div>
+{% if listing.id %}
+	{% set uploads = namespace(items=[]) %}
+	{# Load uploaded files for this listing if any via a helper registered in app globals #}
+	{% if get_listing_uploads is defined %}
+		{% set uploads.items = get_listing_uploads(listing.id) %}
+	{% endif %}
+	{% if uploads.items %}
+		<div class="mt-3">
+			<h5>Images</h5>
+			{% for f in uploads.items %}
+				<img src="{{ url_for('listing.uploaded_file', filename=f.stored_filename) }}" alt="{{ f.original_filename }}" class="img-fluid" style="max-width:200px;">
+			{% endfor %}
+		</div>
+	{% endif %}
+{% endif %}
+{% endblock %}
