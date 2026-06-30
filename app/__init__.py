@@ -1,6 +1,7 @@
 import os
 from flask import Flask, request, flash, redirect, url_for, session
 
+
 from .extensions import db, migrate
 from .config import config_map
 
@@ -40,6 +41,9 @@ def create_app(config_name=None):
     from .security.headers import apply_security_headers
     apply_security_headers(app)
 
+    from .security.csrf import init_csrf
+    init_csrf(app)
+    
     from .web.routes import register_routes
     register_routes(app)
 

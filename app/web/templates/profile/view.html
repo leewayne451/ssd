@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}{{ profile.first_name }} {{ profile.last_name }} — Château Collective{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h1>{{ profile.first_name }} {{ profile.last_name }}</h1>
+    <p><strong>Email:</strong> {{ profile.user.email }}</p>
+
+    {% if profile.phone_number %}
+        <p><strong>Phone:</strong> {{ profile.phone_number }}</p>
+    {% endif %}
+
+    {% if profile.address %}
+        <p><strong>Address:</strong><br>{{ profile.address|nl2br }}</p>
+    {% endif %}
+
+    {% if profile.bio %}
+        <p><strong>Bio:</strong><br>{{ profile.bio }}</p>
+    {% endif %}
+
+    {% if current_user.is_authenticated and current_user.id == profile.user_id %}
+        <a href="{{ url_for('profile.edit_profile', user_id=profile.user_id) }}" class="btn btn-primary">Edit Profile</a>
+    {% endif %}
+</div>
+{% endblock %}

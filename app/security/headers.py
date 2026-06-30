@@ -11,4 +11,9 @@ def apply_security_headers(app):
             "img-src 'self' data:; "
             "font-src 'self' https://cdn.jsdelivr.net"
         )
+        # HSTS — only sent over HTTPS; browsers will refuse HTTP for 1 year
+        if app.config.get("SESSION_COOKIE_SECURE", False):
+            response.headers["Strict-Transport-Security"] = (
+                "max-age=31536000; includeSubDomains"
+            )
         return response
