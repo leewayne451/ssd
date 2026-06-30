@@ -7,7 +7,7 @@ pure functions, so no Flask app/client is needed.
 """
 import pytest
 
-from input_validation import (
+from app.security.input_validation import (
     sanitize_text,
     validate_email,
     validate_non_empty,

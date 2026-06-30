@@ -43,7 +43,10 @@ def create_app(config_name=None):
 
     from .security.csrf import init_csrf
     init_csrf(app)
-    
+
+    from .security.output_encoding import nl2br
+    app.jinja_env.filters["nl2br"] = nl2br
+
     from .web.routes import register_routes
     register_routes(app)
 

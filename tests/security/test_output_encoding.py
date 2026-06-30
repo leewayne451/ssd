@@ -5,7 +5,7 @@ Control under test: explicit HTML-escaping for any value rendered outside
 Jinja's auto-escaping (e.g. building strings manually, or returning data
 in a non-template API response). This is the XSS-defence control.
 """
-from output_encoding import escape_html, safe_display
+from app.security.output_encoding import escape_html, safe_display
 
 
 # -- escape_html -----------------------------------------------------------

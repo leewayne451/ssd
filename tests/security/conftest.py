@@ -1,23 +1,28 @@
 """
 Shared pytest fixtures for the M6 (secure-coding cross-cuts) test suite.
-"""
-import sys
-import os
 
-sys.path.insert(0, os.path.dirname(__file__))
+These tests exercise the *real* cross-cutting helpers
+(app.security.headers / app.security.csrf / app.web.routes.error_routes)
+against a small purpose-built Flask app that exposes a few trigger routes
+(/ping, /csrf-form, /trigger-400, /trigger-403, /boom). Templates used only
+by these tests live in tests/security/templates/.
+"""
+import os
 
 import pytest
 from flask import Flask, request, render_template, jsonify, abort
 
-from headers import apply_security_headers
-from csrf import init_csrf
-from error_routes import errors_bp
+from app.security.headers import apply_security_headers
+from app.security.csrf import init_csrf
+from app.web.routes.error_routes import errors_bp
+
+HERE = os.path.dirname(os.path.abspath(__file__))
 
 
 def create_test_app():
     app = Flask(
-        __name__,
-        template_folder="templates",
+        "security_tests",
+        template_folder=os.path.join(HERE, "templates"),
     )
     app.config.update(
         TESTING=True,

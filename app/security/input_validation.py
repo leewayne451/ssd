@@ -68,8 +68,11 @@ def validate_integer_range(
 def strip_html(value: str, max_length: int = MAX_LONG) -> str:
     """Remove all HTML tags using stdlib html.parser and enforce max length.
     Use this for any free-text field that must never render HTML.
-    No third-party dependency required.
+    No third-party dependency required. Non-string input (e.g. a missing
+    optional form field arriving as None) degrades safely to "".
     """
+    if not isinstance(value, str):
+        return ""
     parser = _StripTagsParser()
     parser.feed(value)
     return parser.get_text().strip()[:max_length]

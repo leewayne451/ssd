@@ -1,12 +1,10 @@
-from flask import Flask
-import os
+from app import create_app
 
 
 def _get_app_with_templates():
-    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-    templates_root = os.path.join(project_root, 'app', 'web', 'templates')
-    app = Flask(__name__, template_folder=templates_root)
-    return app
+    # Use the real application so templates extending base.html can resolve
+    # endpoints (e.g. url_for('public.index')) during rendering.
+    return create_app('testing')
 
 
 def test_index_title_is_escaped():
