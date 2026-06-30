@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Set up 2FA — Château Collective{% endblock %}
+{% block content %}
+<div class="container mt-5" style="max-width: 560px;">
+    <h2>Set up two-factor authentication</h2>
+    <p>
+        Scan this secret into an authenticator app (Google Authenticator, Authy,
+        1Password, …), then enter the 6-digit code it shows to confirm.
+    </p>
+
+    <div class="mb-3">
+        <label class="form-label">Manual setup key</label>
+        <code class="d-block p-2 bg-light border rounded">{{ secret }}</code>
+    </div>
+
+    <details class="mb-3">
+        <summary>otpauth URI</summary>
+        <code class="d-block p-2 bg-light border rounded text-break">{{ provisioning_uri }}</code>
+    </details>
+
+    <form method="POST" action="{{ url_for('admin_2fa.setup', next=next) }}">
+        {{ form.hidden_tag() }}
+        <div class="mb-3">
+            {{ form.code.label(class="form-label") }}
+            {{ form.code(class="form-control", inputmode="numeric", autocomplete="one-time-code", placeholder="123456") }}
+            {% for error in form.code.errors %}
+                <div class="text-danger">{{ error }}</div>
+            {% endfor %}
+        </div>
+        {{ form.submit(class="btn btn-primary w-100", value="Confirm and enable") }}
+    </form>
+</div>
+{% endblock %}
