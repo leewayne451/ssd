@@ -26,6 +26,9 @@ def register_routes(app):
         return {
             'home_url': url_for('public.index'),
             'create_listing_url': url_for('listing.create'),
+            'auth_login_url': url_for('auth.login'),
+            'auth_register_url': url_for('auth.register'),
+            'auth_logout_url': url_for('auth.logout'),
         }
 
     # Register helper to fetch uploads for templates
