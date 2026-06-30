@@ -7,6 +7,7 @@ from app.services.listing_service import (
 	update_listing,
 )
 from app.security.rbac import role_required
+from app.security.ownership import assert_owner
 from pathlib import Path
 
 
@@ -80,9 +81,8 @@ def edit(listing_id):
 	if not listing:
 		abort(404)
 
-	# Ownership check: only the seller who owns the listing may edit
-	if listing.get("seller_id") and listing.get("seller_id") != session.get("user_id"):
-		abort(403)
+	# Ownership check: only the seller who owns the listing may edit (403 on IDOR).
+	assert_owner(listing, session.get("user_id"), owner_attr="seller_id")
 
 	if request.method == "POST":
 		title = request.form.get("title", "").strip()
