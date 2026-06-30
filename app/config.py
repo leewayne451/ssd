@@ -38,6 +38,8 @@ class Config:
     # Override per-environment below:
     SESSION_COOKIE_SECURE: bool = False
 
+    SESSION_TIMEOUT_MINUTES: int = 30
+
     # ------------------------------------------------------------------
     # Secret key — MUST be set via env var in production
     # ------------------------------------------------------------------
