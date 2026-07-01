@@ -1,8 +1,9 @@
 name: Deploy to AWS
 
+# Gated to manual dispatch during development (Phase 1).
+# Re-enable push trigger once AWS secrets are configured in repo Settings.
 on:
-  push:
-    branches: [ "main" ]
+  workflow_dispatch:
 
 jobs:
   deploy:

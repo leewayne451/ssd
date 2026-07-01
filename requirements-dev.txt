@@ -1,4 +1,4 @@
-# Château Collective — Development & security tooling
+# Chateau Collective -- Development & security tooling
 # Install with: pip install -r requirements-dev.txt
 # (After installing requirements.txt first)
 #
