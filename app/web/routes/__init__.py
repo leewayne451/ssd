@@ -11,6 +11,7 @@ from .shipment_routes import shipment_bp
 from .review_routes import review_bp
 from .dispute_routes import dispute_bp
 from .admin_routes import admin_bp
+from .admin_2fa_routes import admin_2fa_bp
 from .error_routes import register_error_handlers
 
 
@@ -47,4 +48,5 @@ def register_routes(app):
     app.register_blueprint(review_bp)
     app.register_blueprint(dispute_bp)
     app.register_blueprint(admin_bp)
+    app.register_blueprint(admin_2fa_bp)
     register_error_handlers(app)

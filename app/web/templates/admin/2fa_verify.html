@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Verify 2FA — Château Collective{% endblock %}
+{% block content %}
+<div class="container mt-5" style="max-width: 500px;">
+    <h2>Two-factor verification</h2>
+    <p>Enter the current 6-digit code from your authenticator app to continue.</p>
+    <form method="POST" action="{{ url_for('admin_2fa.verify', next=next) }}">
+        {{ form.hidden_tag() }}
+        <div class="mb-3">
+            {{ form.code.label(class="form-label") }}
+            {{ form.code(class="form-control", inputmode="numeric", autocomplete="one-time-code", placeholder="123456") }}
+            {% for error in form.code.errors %}
+                <div class="text-danger">{{ error }}</div>
+            {% endfor %}
+        </div>
+        {{ form.submit(class="btn btn-primary w-100") }}
+    </form>
+</div>
+{% endblock %}

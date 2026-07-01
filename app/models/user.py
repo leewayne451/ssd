@@ -25,5 +25,12 @@ class User(db.Model):
     email_confirmed = db.Column(db.Boolean, default=False)
     email_confirmed_at = db.Column(db.DateTime, nullable=True)
 
+    # Admin two-factor authentication (TOTP) — see app/security/admin_2fa.py.
+    # Secret is the base32 seed shared with the authenticator app; should be
+    # encrypted at rest in production. totp_enabled flips on once enrolment is
+    # confirmed with a valid code.
+    totp_secret = db.Column(db.String(64), nullable=True)
+    totp_enabled = db.Column(db.Boolean, nullable=False, default=False)
+
     # Relationships
     profile = db.relationship("Profile", back_populates="user", uselist=False)
