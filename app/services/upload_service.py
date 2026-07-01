@@ -46,11 +46,17 @@ def save_upload(file, listing_id: Optional[int] = None) -> Tuple[bool, list]:
 				break
 			fh.write(chunk)
 
-	# Set conservative permissions where supported
+	# Set conservative permissions where supported. If this fails (e.g. on
+	# platforms that don't support chmod or due to permission issues), log a
+	# warning rather than silently swallowing the error.
 	try:
 		os.chmod(dest_path, 0o640)
-	except Exception:
-		pass
+	except OSError as exc:
+		current_app.logger.warning(
+			"Failed to set permissions on uploaded file %s: %s",
+			str(dest_path),
+			exc,
+		)
 
 	metadata = {
 		"original_filename": original,
