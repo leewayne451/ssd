@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ 'Edit' if listing else 'Create' }} Listing</h1>
+<form method="post" enctype="multipart/form-data">
+  <div class="mb-3">
+    <label class="form-label">Title</label>
+    <input name="title" class="form-control" value="{{ listing.title if listing else '' }}">
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Description</label>
+    <textarea name="description" class="form-control">{{ listing.description if listing else '' }}</textarea>
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Price</label>
+    <input name="price" class="form-control" value="{{ listing.price if listing else '' }}">
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Image</label>
+    <input name="image" type="file" class="form-control">
+  </div>
+  <button class="btn btn-primary" type="submit">Save</button>
+</form>
+{% endblock %}

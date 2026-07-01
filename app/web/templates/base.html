@@ -32,7 +32,7 @@
     <!-- ------------------------------------------------------------------ -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark" aria-label="Main navigation">
         <div class="container">
-            <a class="navbar-brand fw-bold" href="/">Château Collective</a>
+            <a class="navbar-brand fw-bold" href="{{ url_for('public.index') }}">Château Collective</a>
 
             <button
                 class="navbar-toggler"
@@ -47,18 +47,38 @@
             </button>
 
             <div class="collapse navbar-collapse" id="mainNav">
-                <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
-                    <!-- Phase 1+ will populate these based on current_user role -->
+                <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-lg-center">
+                    <!-- Home link -->
                     <li class="nav-item">
-                        <a class="nav-link" href="/">Home</a>
+                        <a class="nav-link" href="{{ url_for('public.index') }}">Home</a>
                     </li>
-                    {# Auth links placeholder — replace in Phase 1 #}
-                    {# {% if current_user.is_authenticated %} #}
-                    {#     <li class="nav-item"><a class="nav-link" href="/logout">Log out</a></li> #}
-                    {# {% else %} #}
-                    {#     <li class="nav-item"><a class="nav-link" href="/login">Log in</a></li> #}
-                    {#     <li class="nav-item"><a class="nav-link" href="/register">Register</a></li> #}
-                    {# {% endif %} #}
+
+                    <!-- Authentication links based on login status -->
+                    {% if current_user && current_user.is_authenticated %}
+                        <!-- Logged in: Show user email and logout -->
+                        <li class="nav-item">
+                            <span class="navbar-text text-light me-2">
+                                Welcome, {{ current_user.email }}
+                            </span>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('auth.logout') }}">Log out</a>
+                        </li>
+                        {% if session.get('role') == 'seller' %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="/seller/listings/create">Create listing</a>
+                        </li>
+                        {% endif %}
+                    {% else %}
+                        <!-- Logged out: Show login and register -->
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('auth.login') }}">Log in</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('auth.register') }}">Register</a>
+                        </li>
+                    {% endif %}
+                    
                 </ul>
             </div>
         </div>
@@ -95,7 +115,7 @@
     <!-- ------------------------------------------------------------------ -->
     <footer class="bg-dark text-light py-4 mt-auto">
         <div class="container text-center">
-            <small>&copy; {{ now.year if now is defined else 2025 }} Château Collective. All rights reserved.</small>
+            <small>&copy; 2026 Château Collective. All rights reserved.</small>
         </div>
     </footer>
 
