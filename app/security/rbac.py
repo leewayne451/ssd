@@ -58,7 +58,7 @@ def _log_access_denied(required_roles):
             "access_denied",
             f"role required: {sorted(required_roles)}; had: {current_user_role()}",
         )
-    except Exception:
+    except Exception:  # nosec B110 - security-event logging must never break the request
         # Logging must never break the request it is protecting.
         pass
 

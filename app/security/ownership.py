@@ -67,7 +67,7 @@ def _log_idor_attempt(resource, owner_attr):
             "ownership_denied",
             f"attempted access to {target} not owned by current user (owner_attr={owner_attr})",
         )
-    except Exception:
+    except Exception:  # nosec B110 - audit logging must never break the protected request
         pass
 
 
