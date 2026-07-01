@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>CSRF test form</title></head>
+<body>
+  <form method="post" action="/csrf-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="text" name="note">
+    <button type="submit">Submit</button>
+  </form>
+</body>
+</html>
