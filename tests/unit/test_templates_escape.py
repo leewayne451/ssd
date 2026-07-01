@@ -1,16 +1,13 @@
-from flask import Flask
-import os
+"""
+Output-encoding / XSS-escaping tests for the listings templates.
+
+Render through the shared `app` fixture (conftest) so blueprints are
+registered and url_for('public.index') in base.html resolves. Jinja
+auto-escaping should neutralise any HTML payload.
+"""
 
 
-def _get_app_with_templates():
-    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-    templates_root = os.path.join(project_root, 'app', 'web', 'templates')
-    app = Flask(__name__, template_folder=templates_root)
-    return app
-
-
-def test_index_title_is_escaped():
-    app = _get_app_with_templates()
+def test_index_title_is_escaped(app):
     listings = [{"id": 1, "title": "<script>alert(1)</script>", "price": "9.99"}]
 
     with app.test_request_context():
@@ -21,8 +18,7 @@ def test_index_title_is_escaped():
     assert '&lt;script&gt;alert(1)&lt;/script&gt;' in out
 
 
-def test_form_fields_are_escaped():
-    app = _get_app_with_templates()
+def test_form_fields_are_escaped(app):
     listing = {"id": 1, "title": "<img src=x onerror=alert(1)>", "description": "<b>bold</b>", "price": "9.99"}
 
     with app.test_request_context():
