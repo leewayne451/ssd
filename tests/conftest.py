@@ -4,7 +4,7 @@ Chateau Collective -- Pytest fixtures
 Provides:
   - app           : session-scoped Flask app in testing mode
   - client        : function-scoped, fresh Flask test client
-  - db_session    : function-scoped, SAVEPOINT-isolated SQLAlchemy session
+  - db_session    : function-scoped SQLAlchemy session, clean schema per test
   - make_user     : factory for creating User rows in the test DB
   - buyer         : pre-built buyer User
   - seller_user   : pre-built seller User
@@ -71,18 +71,23 @@ def client(app):
 @pytest.fixture()
 def db_session(app):
     """
-    SQLAlchemy session isolated via SAVEPOINT.
+    Function-scoped session that guarantees a clean, empty schema per test.
 
-    All writes inside a test are rolled back when the test finishes.
-    Uses SA 2.x begin_nested() -- avoids the deprecated session.bind pattern.
+    Drops and recreates all tables before each test, so every test starts
+    from an empty database. Crucially this survives a commit() made by the
+    code under test (e.g. audit_service.record) -- unlike a SAVEPOINT, which
+    an inner commit() invalidates. In-memory SQLite makes drop/create cheap.
 
-    Downstream fixtures (make_user, buyer, etc.) depend on this fixture;
-    their data is automatically rolled back with it.
+    Downstream fixtures (make_user, buyer, etc.) build their rows on this
+    clean slate.
     """
-    nested = _db.session.begin_nested()   # SAVEPOINT
+    _db.session.remove()      # close any leftover session/transaction
+    _db.drop_all()
+    _db.create_all()
+
     yield _db.session
-    nested.rollback()                      # revert to pre-SAVEPOINT state
-    _db.session.remove()                   # reset scoped session for next test
+
+    _db.session.remove()      # discard uncommitted work; reset for next test
 
 
 # ---------------------------------------------------------------------------
