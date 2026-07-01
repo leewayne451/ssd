@@ -24,9 +24,12 @@ Both fail closed: a missing/None owner id, or a mismatch, yields 403 (and the
 attempt is recorded as a security event). A missing resource yields 404.
 """
 
+import logging
 from functools import wraps
 
 from flask import abort
+
+logger = logging.getLogger(__name__)
 
 # Attributes inspected, in order, when no explicit ``owner_attr`` is given.
 _OWNER_ATTRS = ("user_id", "owner_id", "seller_id", "buyer_id", "actor_user_id")
@@ -68,7 +71,8 @@ def _log_idor_attempt(resource, owner_attr):
             f"attempted access to {target} not owned by current user (owner_attr={owner_attr})",
         )
     except Exception:
-        pass
+        # Logging must never break the request it is protecting.
+        logger.debug("failed to record ownership_denied security event", exc_info=True)
 
 
 def assert_owner(resource, current_user, owner_attr=None):

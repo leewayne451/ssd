@@ -19,11 +19,14 @@ Roles may be passed as plain strings ("seller") or `UserRole` members
 comparison, and the value stored in the session is normalised the same way.
 """
 
+import logging
 from functools import wraps
 
 from flask import session, abort
 
 from app.models.enums import UserRole
+
+logger = logging.getLogger(__name__)
 
 
 def _role_value(role):
@@ -60,7 +63,7 @@ def _log_access_denied(required_roles):
         )
     except Exception:
         # Logging must never break the request it is protecting.
-        pass
+        logger.debug("failed to record access_denied security event", exc_info=True)
 
 
 def login_required(fn):

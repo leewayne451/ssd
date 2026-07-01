@@ -28,8 +28,8 @@ from app.web.forms.admin_forms import TOTPCodeForm
 
 admin_2fa_bp = Blueprint("admin_2fa", __name__, url_prefix="/admin/2fa")
 
-# Session key holding the not-yet-confirmed secret during enrolment.
-_PENDING_SECRET = "pending_totp_secret"
+# Session dict key name (not a credential) holding the not-yet-confirmed secret during enrolment.
+_PENDING_SECRET = "pending_totp_secret"  # nosec B105
 
 
 def _safe_next(default_endpoint="admin.index"):
