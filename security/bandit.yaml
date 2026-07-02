@@ -1,1 +1,18 @@
-# Bandit configuration for Château Collective SAST
+# Bandit SAST configuration — Château Collective
+# Used by CI: bandit -c security/bandit.yaml -r app
+#
+# Policy: the gate fails on ANY finding (default severity/confidence levels).
+# The codebase is currently Bandit-clean; keep it that way. If a finding is a
+# reviewed false positive, prefer an inline `# nosec <rule-id>` with a comment
+# explaining WHY, so the justification lives next to the code. Add entries to
+# `skips` below only for whole-rule exclusions agreed by the team.
+
+# Paths never scanned (bandit already only scans `app/`, these are belt-and-braces).
+exclude_dirs:
+  - tests
+  - .venv
+  - migrations
+
+# Whole-rule skips — keep EMPTY unless a rule is agreed to be noise for this
+# project. Every entry must carry a justification comment.
+skips: []

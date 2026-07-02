@@ -1,7 +1,7 @@
 name: Deploy to AWS
 
 # Auto-triggers on every push to main (after the app is merged). Also runnable
-# manually. Requires these repo secrets: AWS_HOST, AWS_USER, AWS_SSH_KEY.
+# manually. Requires these repo secrets: AWS_HOST, AWS_USER, AWS_SSH_PRIVATE_KEY.
 on:
   push:
     branches: [ "main" ]
@@ -26,7 +26,7 @@ jobs:
         with:
           host: ${{ secrets.AWS_HOST }}
           username: ${{ secrets.AWS_USER }}
-          key: ${{ secrets.AWS_SSH_KEY }}
+          key: ${{ secrets.AWS_SSH_PRIVATE_KEY }}
           script_stop: true
           script: |
             set -euo pipefail

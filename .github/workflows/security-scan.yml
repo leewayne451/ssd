@@ -6,8 +6,17 @@ on:
   pull_request:
     branches: [ "main" ]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: scan-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   security-scan:
+    # NOTE: this job name is referenced by the branch-protection rule on main.
+    # Do not rename without updating the required status checks.
     name: Run Security Scans
     runs-on: ubuntu-latest
 
@@ -18,16 +27,44 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
+          cache: pip
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install --upgrade --no-cache-dir -r requirements.txt
-          pip install --upgrade --no-cache-dir -r requirements-dev.txt
+          pip install -r requirements.txt -r requirements-dev.txt
 
-      - name: Run Bandit security scan
-        run: bandit -r app
+      - name: "Run Bandit SAST (config: security/bandit.yaml)"
+        run: |
+          mkdir -p reports
+          # JSON report for the evidence pack (non-gating pass) …
+          bandit -c security/bandit.yaml -r app -f json -o reports/bandit.json || true
+          # … and the gating pass: any finding fails the build (repo is
+          # currently clean; keep it that way or justify a skip in the config).
+          bandit -c security/bandit.yaml -r app
 
-      - name: Run Semgrep scan
-        run: semgrep scan --config auto app
+      - name: Run Semgrep SAST (pinned rulesets + project rules)
+        run: >
+          semgrep scan
+          --config p/python
+          --config p/flask
+          --config p/secrets
+          --config security/semgrep.yaml
+          --error
+          --json --output reports/semgrep.json
+          --text
+          app
+
+      - name: Run gitleaks secret scan (full git history)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload SAST reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sast-reports-${{ github.run_number }}
+          path: reports/
+          retention-days: 90

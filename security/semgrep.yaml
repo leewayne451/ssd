@@ -1,1 +1,49 @@
-# Semgrep rules for Château Collective SAST
+# Project-specific Semgrep rules — Château Collective
+# Run by CI alongside the pinned registry packs (p/python, p/flask, p/secrets):
+#   semgrep scan --config security/semgrep.yaml ...
+#
+# These encode OUR D1 secure-development requirements as hard gates:
+#   SDR-02 (output encoding), SDR-03 (SQL injection prevention),
+#   NFSR-21 (no debug interfaces in production).
+# If a finding is intentional, suppress with `# nosemgrep: <rule-id>` plus a
+# justification comment on the same line — reviewers will look for it.
+
+rules:
+  - id: chateau-flask-run-debug
+    languages: [python]
+    severity: ERROR
+    message: >
+      Flask app.run(debug=True) enables the Werkzeug debugger (remote code
+      execution if exposed). Debug must come from DevelopmentConfig only,
+      never hardcoded at the run call. (D1: NFSR-21, SDR-12)
+    patterns:
+      - pattern: $APP.run(..., debug=True, ...)
+
+  - id: chateau-raw-sql-string-built
+    languages: [python]
+    severity: ERROR
+    message: >
+      SQL built from strings (f-string/format/concat/%) — use the SQLAlchemy
+      ORM or bound parameters instead. String-built SQL is how SQL injection
+      happens. (D1: SDR-03)
+    pattern-either:
+      - pattern: $DB.execute(f"...")
+      - pattern: $DB.execute("..." + $X)
+      - pattern: $DB.execute("...".format(...))
+      - pattern: $DB.execute("..." % $X)
+      - pattern: $DB.session.execute(f"...")
+      - pattern: $DB.session.execute("..." + $X)
+      - pattern: $DB.session.execute("...".format(...))
+      - pattern: $DB.session.execute("..." % $X)
+
+  - id: chateau-jinja-safe-filter
+    languages: [generic]
+    severity: ERROR
+    paths:
+      include:
+        - "*.html"
+    message: >
+      The |safe filter disables Jinja auto-escaping and can introduce XSS.
+      User data must render escaped; if this use is truly static and
+      intentional, suppress with a justified nosemgrep comment. (D1: SDR-02)
+    pattern-regex: '\|\s*safe\b'
