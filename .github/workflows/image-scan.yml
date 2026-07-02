@@ -1,0 +1,44 @@
+name: Docker Image Scan (Trivy)
+
+# Builds the app image and scans it for known OS/dependency vulnerabilities.
+# Runs only when the image or its dependencies change (keeps CI fast).
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - "Dockerfile"
+      - "requirements.txt"
+      - ".github/workflows/image-scan.yml"
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - "Dockerfile"
+      - "requirements.txt"
+      - ".github/workflows/image-scan.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  trivy:
+    name: Build image and scan with Trivy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build -t chateau-collective:scan .
+
+      - name: Trivy vulnerability scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: chateau-collective:scan
+          format: table
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          # Report-only for now so a base-image CVE doesn't block work.
+          # Flip to "1" once findings are triaged to make it a hard gate.
+          exit-code: "0"

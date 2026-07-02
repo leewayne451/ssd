@@ -1,5 +1,6 @@
 import logging
 import os
+import sys
 from logging.handlers import RotatingFileHandler
 
 
@@ -31,6 +32,13 @@ def configure_logging(app):
         security_handler.setLevel(logging.WARNING)
 
         app.logger.addHandler(audit_handler)
+
+        # Also stream to stdout so `docker logs` / the container platform capture
+        # application logs (file handlers alone are invisible outside the volume).
+        stream_handler = logging.StreamHandler(sys.stdout)
+        stream_handler.setFormatter(formatter)
+        stream_handler.setLevel(logging.INFO)
+        app.logger.addHandler(stream_handler)
 
         security_logger = logging.getLogger("security")
         security_logger.addHandler(security_handler)

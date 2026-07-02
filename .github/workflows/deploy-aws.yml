@@ -1,35 +1,58 @@
 name: Deploy to AWS
 
-# Gated to manual dispatch during development (Phase 1).
-# Re-enable push trigger once AWS secrets are configured in repo Settings.
+# Auto-triggers on every push to main (after the app is merged). Also runnable
+# manually. Requires these repo secrets: AWS_HOST, AWS_USER, AWS_SSH_KEY.
 on:
+  push:
+    branches: [ "main" ]
   workflow_dispatch:
+
+# Never run two deploys at once against the same VM.
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
 
 jobs:
   deploy:
-    name: Deploy to AWS
+    name: Deploy (Docker Compose) to AWS VM
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      # Configure these secrets in the GitHub repository settings before running this workflow.
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
-
       - name: Deploy over SSH
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.AWS_HOST }}
-          key: ${{ secrets.AWS_SSH_KEY }}
           username: ${{ secrets.AWS_USER }}
+          key: ${{ secrets.AWS_SSH_KEY }}
+          script_stop: true
           script: |
-            cd /var/www/chateau-collective
-            git pull origin main
-            pip install -r requirements.txt
-            sudo systemctl restart chateau-collective
+            set -euo pipefail
+            cd ~/ssd
+
+            echo "==> Fetching latest main"
+            git fetch --all --prune
+            git reset --hard origin/main
+
+            echo "==> Rebuilding and starting containers"
+            docker compose pull || true
+            docker compose up -d --build
+
+            echo "==> Pruning dangling images"
+            docker image prune -f
+
+            echo "==> Health gate"
+            for i in $(seq 1 15); do
+              if curl -fsS http://127.0.0.1/healthz >/dev/null 2>&1; then
+                echo "Healthcheck passed on attempt $i"
+                exit 0
+              fi
+              echo "waiting for app to become healthy... ($i/15)"
+              sleep 4
+            done
+            echo "ERROR: app did not become healthy after deploy" >&2
+            docker compose ps
+            docker compose logs --tail=50 web || true
+            exit 1
