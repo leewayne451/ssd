@@ -1,10 +1,11 @@
-from flask import Blueprint, render_template
+from flask import Blueprint, render_template, request
 
 from app.security.rbac import role_required
 from app.security.admin_2fa import admin_2fa_required
+from app.models.audit_log import AuditLog
+from app.models.security_event import SecurityEvent
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
-
 
 @admin_bp.route("/")
 @role_required("admin")
@@ -20,6 +21,28 @@ def index():
     """
     return render_template("admin/index.html")
 
-# TODO (M5): admin dashboard, manage users, suspend accounts,
-#       approve/reject listings, authentication review workflow,
-#       order status updates, resolve disputes, audit logs
+@admin_bp.route("/logs")
+@role_required("admin")
+@admin_2fa_required
+def logs():
+    """
+    Paginated, read-only view of audit log + security events.
+    Admin role + 2FA required — same gate as every /admin route.
+    """
+    page = request.args.get("page", 1, type=int)
+    per_page = 20
+
+    audit_logs = AuditLog.query.order_by(
+        AuditLog.created_at.desc()
+    ).paginate(page=page, per_page=per_page, error_out=False)
+
+    security_events = SecurityEvent.query.order_by(
+        SecurityEvent.created_at.desc()
+    ).paginate(page=page, per_page=per_page, error_out=False)
+
+    return render_template(
+        "admin/logs.html",
+        audit_logs=audit_logs,
+        security_events=security_events,
+        page=page,
+    )
