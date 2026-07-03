@@ -6,11 +6,20 @@ on:
   pull_request:
     branches: [ "main" ]
 
+# Least privilege: gitleaks-action needs pull-requests:read on PR events to
+# enumerate the PR's commits; everything else only reads repo contents.
 permissions:
   contents: read
+  pull-requests: read
+
+concurrency:
+  group: scan-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   security-scan:
+    # NOTE: this job name is referenced by the branch-protection rule on main.
+    # Do not rename without updating the required status checks.
     name: Run Security Scans
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -18,30 +27,63 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          # Full history: gitleaks diffs the PR's commit range, which a
+          # shallow (depth-1) clone doesn't contain.
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
+          cache: pip
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install --upgrade --no-cache-dir -r requirements.txt
-          pip install --upgrade --no-cache-dir -r requirements-dev.txt
+          # semgrep's telemetry deps import pkg_resources, which Python 3.12
+          # doesn't bundle and setuptools>=81 removed — pin an older setuptools
+          # that still ships it, and fail fast here if it's unimportable.
+          pip install "setuptools<81"
+          python -c "import pkg_resources" || { echo "::error::pkg_resources still missing"; exit 1; }
+          pip install -r requirements.txt -r requirements-dev.txt
 
-      # Scanners stay authoritative: each step keeps its native exit code
-      # (captured via continue-on-error) and the final gate step re-applies
-      # the original pass/fail policy after the reports are uploaded.
-      - name: Run Bandit security scan
+      # Scanners stay authoritative: the gating passes keep their native exit
+      # codes (captured via continue-on-error) and the final gate step
+      # re-applies the original pass/fail policy AFTER the reports have been
+      # uploaded, so report generation never turns a failing scan into a
+      # passing one and the AI triage workflow always receives the reports.
+      - name: "Run Bandit SAST (JSON report, config: security/bandit.yaml)"
+        run: |
+          mkdir -p reports
+          # JSON report for the evidence pack and AI triage (non-gating pass) …
+          bandit -c security/bandit.yaml -r app -f json -o reports/bandit.json || true
+
+      - name: "Run Bandit SAST gate (config: security/bandit.yaml)"
         id: bandit
         continue-on-error: true
-        run: bandit -r app -f json -o bandit-report.json
+        # … and the gating pass: any finding fails the build (repo is
+        # currently clean; keep it that way or justify a skip in the config).
+        run: bandit -c security/bandit.yaml -r app
 
-      - name: Run Semgrep scan
+      - name: Run Semgrep SAST (pinned rulesets + project rules)
         id: semgrep
         continue-on-error: true
-        run: semgrep scan --config auto app --json --output semgrep-report.json
+        run: >
+          semgrep scan
+          --config p/python
+          --config p/flask
+          --config p/secrets
+          --config security/semgrep.yaml
+          --error
+          --json --output reports/semgrep.json
+          --text
+          app
+
+      - name: Run gitleaks secret scan (full git history)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Write scan metadata
         if: always()
@@ -51,6 +93,7 @@ jobs:
           BANDIT_OUTCOME: ${{ steps.bandit.outcome }}
           SEMGREP_OUTCOME: ${{ steps.semgrep.outcome }}
         run: |
+          mkdir -p reports
           python - <<'PY'
           import json, os
           json.dump(
@@ -60,23 +103,20 @@ jobs:
                   "bandit_outcome": os.environ.get("BANDIT_OUTCOME", ""),
                   "semgrep_outcome": os.environ.get("SEMGREP_OUTCOME", ""),
               },
-              open("scan-metadata.json", "w"),
+              open("reports/scan-metadata.json", "w"),
               indent=2,
           )
           PY
 
-      # Only scanner reports and small metadata are uploaded -- never source
+      # Only scanner reports and small metadata are uploaded — never source
       # code, environment files, databases, logs, uploads or secrets.
-      - name: Upload scanner reports
+      - name: Upload SAST reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: security-scan-reports-${{ github.run_id }}
-          path: |
-            bandit-report.json
-            semgrep-report.json
-            scan-metadata.json
-          retention-days: 7
+          name: sast-reports-${{ github.run_number }}
+          path: reports/
+          retention-days: 90
           if-no-files-found: warn
           overwrite: true  # v4 artifacts are immutable; allow re-run attempts
 

@@ -1,0 +1,69 @@
+# Château Collective — production stack (app + reverse proxy)
+#
+#   web    : Flask app under Gunicorn (built from Dockerfile). Not published to
+#            the host — only nginx (same network) can reach it on :8000.
+#   nginx  : TLS termination + reverse proxy. The only service exposed publicly.
+#
+# Secrets: SECRET_KEY is injected via compose interpolation from a local `.env`
+# file (git-ignored) sitting next to this file on the VM. See deploy/README.md.
+
+name: chateau-collective
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: chateau-collective:latest
+    restart: unless-stopped
+    environment:
+      FLASK_ENV: production
+      # SECRET_KEY must be set once and kept stable (changing it invalidates all
+      # sessions). `:?` makes compose refuse to start if it is missing.
+      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY is not set — create a .env file (see deploy/README.md)}
+      # SQLite DB lives on the app-instance volume so it survives redeploys.
+      DATABASE_URL: sqlite:////app/instance/chateau.db
+      UPLOAD_DIR: /app/uploads
+      LOG_DIR: /app/logs
+    volumes:
+      - app-instance:/app/instance
+      - app-uploads:/app/uploads
+      - app-logs:/app/logs
+    expose:
+      - "8000"            # internal to the compose network only — never published
+    networks:
+      - chateau
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys,urllib.request; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=2).status == 200 else 1)"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 20s
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    depends_on:
+      web:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      # Active site config. Swap to chateau-collective.tls.conf once certs exist.
+      - ./deploy/nginx/chateau-collective.conf:/etc/nginx/conf.d/default.conf:ro
+      # Let's Encrypt certs (populated by certbot on the host) + ACME webroot.
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - certbot-webroot:/var/www/certbot
+    networks:
+      - chateau
+
+volumes:
+  app-instance:
+  app-uploads:
+  app-logs:
+  certbot-webroot:
+
+networks:
+  chateau:
+    driver: bridge

@@ -64,11 +64,13 @@ requirements-ai.txt             CI-only pinned dependencies
    the GitHub API, builds bounded context, makes one model call, and upserts
    one PR comment (marker `<!-- chateau-ai-contextual-review -->`).
 3. When Security Scan completes (pass or fail), it has already uploaded
-   `bandit-report.json` / `semgrep-report.json` as a short-retention
-   artifact. **AI Security Triage** downloads the reports, parses them
-   locally, skips OpenAI entirely if there are no findings, and otherwise
-   upserts one PR comment (marker `<!-- chateau-ai-security-triage -->`) or
-   writes to the job summary when no PR exists.
+   `reports/bandit.json` / `reports/semgrep.json` in the
+   `sast-reports-<run number>` artifact. **AI Security Triage** downloads
+   the reports, parses them locally, skips OpenAI entirely if there are no
+   findings, and otherwise upserts one PR comment (marker
+   `<!-- chateau-ai-security-triage -->`) or writes to the job summary when
+   no PR exists. (gitleaks results are gated deterministically inside
+   Security Scan and are not sent to the model.)
 4. **AI Milestone Audit** runs only when a maintainer dispatches it.
 
 ## Trust model (workflow_run, no PR-head checkout)
@@ -160,14 +162,16 @@ duplicates are never posted.
 
 ## Scanner-report handling
 
-`security-scan.yml` now produces `bandit-report.json` and
-`semgrep-report.json`, uploads them (plus small run metadata) as a
-7-day-retention artifact, and then re-applies the original pass/fail policy:
-a failing scanner still fails the workflow, and report generation can never
-turn a failing scan into a passing one. No source code, environment files,
-databases, logs, uploads or secrets are uploaded. pip-audit remains an
-independent deterministic control inside CI; AI triage covers Bandit and
-Semgrep (a second pip-audit run is intentionally not added).
+`security-scan.yml` produces `reports/bandit.json` and
+`reports/semgrep.json`, uploads them (plus small run metadata) as the
+`sast-reports-<run number>` evidence artifact (90-day retention, per the
+team's evidence-pack policy), and then re-applies the original pass/fail
+policy: a failing scanner still fails the workflow, and report generation
+can never turn a failing scan into a passing one. No source code,
+environment files, databases, logs, uploads or secrets are uploaded.
+pip-audit remains an independent deterministic control inside CI, and
+gitleaks remains an independent deterministic secret-scanning gate; AI
+triage covers Bandit and Semgrep only.
 
 ## Configuration
 

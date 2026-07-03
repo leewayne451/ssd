@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}Audit Logs — Château Collective{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">Audit &amp; Security Logs</h1>
+
+    <!-- Audit Log -->
+    <h2 class="h4 mb-3">Audit Log</h2>
+    <div class="table-responsive mb-4">
+        <table class="table table-sm table-bordered table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>ID</th>
+                    <th>Actor</th>
+                    <th>Action</th>
+                    <th>Target</th>
+                    <th>Target ID</th>
+                    <th>IP</th>
+                    <th>Time</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in audit_logs.items %}
+                <tr>
+                    <td>{{ row.id }}</td>
+                    <td>{{ row.actor_user_id or "anon" }}</td>
+                    <td>{{ row.action_type }}</td>
+                    <td>{{ row.target_type or "—" }}</td>
+                    <td>{{ row.target_id or "—" }}</td>
+                    <td>{{ row.source_ip or "—" }}</td>
+                    <td>{{ row.created_at.strftime("%Y-%m-%d %H:%M:%S") }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="7" class="text-muted">No audit entries yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Audit log pagination -->
+    <nav class="mb-5">
+        <ul class="pagination">
+            {% if audit_logs.has_prev %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('admin.logs', page=audit_logs.prev_num) }}">Previous</a>
+            </li>
+            {% endif %}
+            {% if audit_logs.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('admin.logs', page=audit_logs.next_num) }}">Next</a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+
+    <!-- Security Events -->
+    <h2 class="h4 mb-3">Security Events</h2>
+    <div class="table-responsive">
+        <table class="table table-sm table-bordered table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>ID</th>
+                    <th>Event</th>
+                    <th>User</th>
+                    <th>IP</th>
+                    <th>Details</th>
+                    <th>Time</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in security_events.items %}
+                <tr>
+                    <td>{{ row.id }}</td>
+                    <td>{{ row.event_type }}</td>
+                    <td>{{ row.user_id or "anon" }}</td>
+                    <td>{{ row.source_ip or "—" }}</td>
+                    <td>{{ row.details or "—" }}</td>
+                    <td>{{ row.created_at.strftime("%Y-%m-%d %H:%M:%S") }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6" class="text-muted">No security events yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Security events pagination -->
+    <nav>
+        <ul class="pagination">
+            {% if security_events.has_prev %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('admin.logs', page=security_events.prev_num) }}">Previous</a>
+            </li>
+            {% endif %}
+            {% if security_events.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('admin.logs', page=security_events.next_num) }}">Next</a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+</div>
+{% endblock %}

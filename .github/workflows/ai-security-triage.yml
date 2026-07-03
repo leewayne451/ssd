@@ -57,7 +57,7 @@ jobs:
       - name: Download scanner reports from the triggering run
         uses: actions/download-artifact@v4
         with:
-          name: security-scan-reports-${{ github.event.workflow_run.id }}
+          name: sast-reports-${{ github.event.workflow_run.run_number }}
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
           path: scan-reports
@@ -87,8 +87,8 @@ jobs:
           AI_TRIAGE_MODEL: ${{ vars.AI_TRIAGE_MODEL }}
         run: |
           python -m tools.ai_review.triage_scans \
-            --bandit scan-reports/bandit-report.json \
-            --semgrep scan-reports/semgrep-report.json \
+            --bandit scan-reports/bandit.json \
+            --semgrep scan-reports/semgrep.json \
             --output ai-security-triage.md
 
       - name: Publish triage report to the job summary

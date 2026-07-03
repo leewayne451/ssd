@@ -213,7 +213,7 @@ ICT2216_Secure-Software-Development/
 |       |-- ai-security-triage.yml          # Advisory AI scanner triage
 |       |-- ci.yml                          # pytest + lint + pip-audit
 |       |-- deploy-aws.yml                  # Auto-deploy to AWS VM
-|       |-- security-scan.yml               # Bandit + Semgrep + JSON reports
+|       |-- security-scan.yml               # Bandit + Semgrep + gitleaks + reports
 |       +-- zap-baseline.yml                # OWASP ZAP DAST
 |-- app
 |   |-- models                              # ── Data/Storage Layer ──
