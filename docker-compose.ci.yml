@@ -1,0 +1,13 @@
+# CI-only compose override — used by the DAST workflow to boot the app inside
+# the GitHub Actions runner and scan it. NEVER use in production:
+#   - publishes the app port straight to the runner host (no nginx in front)
+#   - uses a throwaway SECRET_KEY
+#
+# Usage: docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d --build web
+
+services:
+  web:
+    ports:
+      - "8000:8000"
+    environment:
+      SECRET_KEY: ci-dast-throwaway-secret-not-production

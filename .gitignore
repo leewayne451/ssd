@@ -10,6 +10,8 @@ instance/
 !instance/
 !instance/.gitkeep
 *.db
+*.sqlite
+*.sqlite3
 
 .env
 .venv/
@@ -22,6 +24,7 @@ logs/
 .pytest_cache/
 .coverage
 htmlcov/
+reports/
 
 *.pyc
 *.pyo

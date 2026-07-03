@@ -1,0 +1,47 @@
+# Keep the build context small and never bake secrets/state into the image.
+
+# VCS & CI
+.git
+.github
+.gitignore
+
+# Python caches / build artifacts
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Virtualenvs
+.venv/
+venv/
+env/
+
+# Test & coverage
+.pytest_cache/
+.coverage
+htmlcov/
+tests/
+
+# Secrets & local env (injected at runtime via compose, never copied in)
+.env
+.env.*
+
+# Runtime state — provided by named volumes, must not be in the image
+instance/
+uploads/
+logs/
+*.sqlite
+*.sqlite3
+*.db
+
+# Docs & editor cruft (not needed at runtime)
+doc/
+docs/
+*.md
+!deploy/README.md
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

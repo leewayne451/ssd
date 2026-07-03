@@ -21,3 +21,15 @@ dev = [
     "pytest-flask==1.3.0",
     "semgrep==1.119.0",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# Puts the repo root on sys.path so `from app import create_app` works from
+# any invocation directory (replaces ad-hoc PYTHONPATH tweaks in CI).
+pythonpath = ["."]
+
+[tool.coverage.run]
+source = ["app"]
+
+[tool.coverage.report]
+skip_empty = true

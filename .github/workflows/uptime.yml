@@ -1,0 +1,29 @@
+name: Uptime Check
+
+# Availability evidence for NFSR-09 ("99% uptime, based on repeated access
+# testing or uptime monitoring"): pings the deployed app every 30 minutes and
+# leaves a green/red run history you can screenshot for the report.
+#
+# Activation: set the repository *variable* APP_URL (Settings → Secrets and
+# variables → Actions → Variables) to the deployed base URL, e.g.
+# https://chateau31.duckdns.org — until then the job skips silently.
+# Note: scheduled workflows only run on the default branch (after merge).
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  ping:
+    name: Ping /healthz
+    if: vars.APP_URL != ''
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check application health
+        run: |
+          echo "Target: ${{ vars.APP_URL }}/healthz"
+          curl -fsS --max-time 15 "${{ vars.APP_URL }}/healthz"
+          echo ""
+          echo "OK at $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
