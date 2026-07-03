@@ -50,17 +50,18 @@ Requires a domain pointing at the VM's public IP (a free DuckDNS/nip.io host wor
      -v /etc/letsencrypt:/etc/letsencrypt \
      -v chateau-collective_certbot-webroot:/var/www/certbot \
      certbot/certbot certonly --webroot -w /var/www/certbot \
-     -d YOUR_DOMAIN --email you@example.com --agree-tos --no-eff-email
+     -d chateaucollective.duckdns.org --email you@example.com --agree-tos --no-eff-email
    ```
-2. Edit `deploy/nginx/chateau-collective.tls.conf`, replacing `YOUR_DOMAIN`.
+2. The TLS config (`deploy/nginx/chateau-collective.tls.conf`) is already set
+   for `chateaucollective.duckdns.org`.
 3. Point the nginx mount in `docker-compose.yml` at the TLS config:
    ```yaml
    - ./deploy/nginx/chateau-collective.tls.conf:/etc/nginx/conf.d/default.conf:ro
    ```
-4. Reload: `docker compose up -d`. Verify: `curl -I https://YOUR_DOMAIN`.
+4. Reload: `docker compose up -d`. Verify: `curl -I https://chateaucollective.duckdns.org`.
 
 **Private key storage:** the TLS private key lives at
-`/etc/letsencrypt/live/YOUR_DOMAIN/privkey.pem`, owned by `root` (mode `600`),
+`/etc/letsencrypt/live/chateaucollective.duckdns.org/privkey.pem`, owned by `root` (mode `600`),
 mounted **read-only** into the nginx container. It is never committed to git.
 
 **TLS policy** (see `chateau-collective.tls.conf`): TLS 1.2 + 1.3 only; ECDHE key
@@ -72,8 +73,9 @@ exchange (forward secrecy); AES-GCM / ChaCha20-Poly1305 AEAD ciphers; HSTS on.
 VM, `git reset --hard origin/main`, `docker compose up -d --build`, prunes old
 images, and fails the run unless `/healthz` returns healthy.
 
-Required repo secrets: `AWS_HOST` (public IP/DNS), `AWS_USER` (e.g. `student31`),
-`AWS_SSH_KEY` (the PEM private key contents).
+Required repo secrets: `AWS_HOST` (set it to `chateaucollective.duckdns.org`,
+not the raw IP — survives IP changes), `AWS_USER` (`student31`),
+`AWS_SSH_PRIVATE_KEY` (the PEM private key contents).
 
 ## Common operations
 
