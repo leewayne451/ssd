@@ -23,6 +23,12 @@ jobs:
     name: ZAP Baseline vs containerized app
     runs-on: ubuntu-latest
 
+    # The base compose file guards SECRET_KEY with ${SECRET_KEY:?}, which is
+    # resolved at compose-parse time from the shell environment — so every
+    # step that touches compose needs it set. Throwaway value, CI only.
+    env:
+      SECRET_KEY: ci-dast-throwaway-secret-not-production
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
