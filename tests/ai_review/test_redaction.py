@@ -5,13 +5,13 @@ from tools.ai_review.redaction import contains_secret, redact
 
 class TestRedaction:
     def test_fake_openai_key_redacted(self):
-        text = "OPENAI_API_KEY = 'sk-proj-abcdefghijklmnop1234567890ABCD'"
+        text = "OPENAI_API_KEY = 'sk-proj-abcdefghijklmnop1234567890ABCD'"  # gitleaks:allow
         result = redact(text)
         assert "sk-proj-" not in result
         assert "REDACTED" in result
 
     def test_fake_openai_key_plain_prefix(self):
-        assert "sk-test" not in redact("key=sk-testabcdefghijklmnop123456")
+        assert "sk-test" not in redact("key=sk-testabcdefghijklmnop123456")  # gitleaks:allow
 
     def test_fake_aws_access_key_redacted(self):
         result = redact("aws_access_key_id = AKIAIOSFODNN7EXAMPLE")
@@ -37,8 +37,8 @@ class TestRedaction:
 
     def test_fake_private_key_redacted(self):
         pem = (
-            "-----BEGIN RSA PRIVATE KEY-----\n"
-            "MIIEfakefakefakefake\nfakefakefake\n"
+            "-----BEGIN RSA PRIVATE KEY-----\n"  # gitleaks:allow
+            "MIIEfakefakefakefake\nfakefakefake\n"  # gitleaks:allow
             "-----END RSA PRIVATE KEY-----"
         )
         result = redact(pem)
