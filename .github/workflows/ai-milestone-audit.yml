@@ -1,0 +1,93 @@
+# Manually triggered milestone consistency audit (advisory).
+#
+# Compares the authoritative project documentation (proposal, Deliverable 1,
+# FR/NFR, SFR/FSR/NFSR/SDR, textual use/misuse cases, threat model, attack
+# surface, architecture) against the implementation and tests on the trusted
+# default branch. Inputs are constrained choices and are re-validated against
+# fixed allowlists inside tools/ai_review/milestone_audit.py; no arbitrary
+# branch, SHA, path, prompt or shell argument is accepted.
+#
+# Dispatch this workflow from the default branch. See docs/ai-review-setup.md.
+
+name: AI Milestone Audit
+
+on:
+  workflow_dispatch:
+    inputs:
+      model:
+        description: "OpenAI model (allowlisted)"
+        type: choice
+        options:
+          - gpt-5.5
+          - gpt-5.4-mini
+        default: gpt-5.5
+      scope:
+        description: "Audit scope"
+        type: choice
+        options:
+          - full
+          - security
+          - requirements
+          - architecture
+          - tests
+        default: full
+
+permissions: {}
+
+jobs:
+  audit:
+    name: AI milestone audit (advisory)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    concurrency:
+      group: ai-milestone-audit
+      cancel-in-progress: true
+
+    steps:
+      - name: Check out trusted default-branch content
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install AI tooling dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --no-cache-dir -r requirements-ai.txt
+
+      - name: Run milestone consistency audit
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          AUDIT_MODEL: ${{ inputs.model }}
+          AUDIT_SCOPE: ${{ inputs.scope }}
+        run: |
+          python -m tools.ai_review.milestone_audit \
+            --model "${AUDIT_MODEL}" \
+            --scope "${AUDIT_SCOPE}" \
+            --output ai-milestone-audit.md
+
+      - name: Publish audit to the job summary
+        if: always()
+        run: |
+          if [ -f ai-milestone-audit.md ]; then
+            cat ai-milestone-audit.md >> "${GITHUB_STEP_SUMMARY}"
+          fi
+
+      - name: Upload audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-milestone-audit-${{ github.run_id }}
+          path: |
+            ai-milestone-audit.md
+            ai-milestone-audit.json
+          retention-days: 7
+          if-no-files-found: ignore
+          overwrite: true  # v4 artifacts are immutable; allow re-run attempts

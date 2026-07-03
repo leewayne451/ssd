@@ -35,7 +35,9 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt -r requirements-dev.txt
+          # requirements-ai.txt is CI-only tooling (tests/ai_review imports it);
+          # it is never installed in the deployed application.
+          pip install -r requirements.txt -r requirements-dev.txt -r requirements-ai.txt
 
       - name: Run unit tests (with JUnit + coverage reports)
         run: >

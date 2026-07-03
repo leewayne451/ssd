@@ -1,0 +1,8 @@
+# Deliberately FAKE secret fixtures used by the redaction unit tests
+# (tests/ai_review/test_redaction.py). They exercise the secret-redaction
+# layer of the AI review tooling and are not real credentials. The current
+# file carries inline "gitleaks:allow" annotations; these fingerprints cover
+# the historical commit that predates those annotations.
+7af65855ce4529bf5a7600b2f049d3a5793ccda1:tests/ai_review/test_redaction.py:generic-api-key:8
+7af65855ce4529bf5a7600b2f049d3a5793ccda1:tests/ai_review/test_redaction.py:generic-api-key:14
+7af65855ce4529bf5a7600b2f049d3a5793ccda1:tests/ai_review/test_redaction.py:private-key:40

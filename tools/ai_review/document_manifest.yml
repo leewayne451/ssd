@@ -1,0 +1,88 @@
+# Authoritative documentation manifest for the AI review tooling.
+#
+# Only files listed here are ever loaded as trusted project context.
+# Authority order: finalised project documents (primary) > implementation
+# and tests > OWASP/NIST/OSA guidance > drafts.
+#
+# The lecture PDF under doc/ is intentionally NOT listed: lecture material
+# must not be copied into generated output.
+#
+# ignore_diagrams: use/misuse and architecture diagrams are being redrawn;
+# only textual descriptions are authoritative.
+
+documents:
+  - glob: doc/ICT2116_P2_team31_Deliverable_One.pdf
+    category: deliverable-1-brief
+    authority: primary
+    priority: 100
+    requirement_prefixes: [FR, NFR, SFR, FSR, NFSR, SDR, UC, MUC]
+    relevant_code_paths: ["app/**", "tests/**", "deploy/**", "security/**", ".github/**", "migrations/**"]
+    ignore_diagrams: true
+    maximum_characters: 40000
+    enabled_for_pr_review: true
+    enabled_for_milestone_audit: true
+
+  - glob: doc/proposal.pdf
+    category: project-proposal
+    authority: primary
+    priority: 90
+    relevant_code_paths: ["app/**"]
+    ignore_diagrams: true
+    maximum_characters: 20000
+    enabled_for_pr_review: false
+    enabled_for_milestone_audit: true
+
+  - glob: doc/project_description.pdf
+    category: module-project-requirements
+    authority: primary
+    priority: 80
+    relevant_code_paths: []
+    ignore_diagrams: true
+    maximum_characters: 15000
+    enabled_for_pr_review: false
+    enabled_for_milestone_audit: true
+
+  - glob: README.md
+    category: architecture-and-workflow-states
+    authority: primary
+    priority: 70
+    relevant_code_paths: ["app/**", "deploy/**", ".github/**", "tests/**", "security/**"]
+    maximum_characters: 15000
+    enabled_for_pr_review: true
+    enabled_for_milestone_audit: true
+
+  - glob: docs/d2/deliverable_2_gap_checklist.md
+    category: development-plan
+    authority: primary
+    priority: 60
+    relevant_code_paths: ["app/**", "tests/**"]
+    maximum_characters: 15000
+    enabled_for_pr_review: true
+    enabled_for_milestone_audit: true
+
+  - glob: docs/d2/owasp_mapping_table.md
+    category: security-requirements-mapping
+    authority: primary
+    priority: 60
+    relevant_code_paths: ["app/**", "tests/**", "security/**"]
+    maximum_characters: 12000
+    enabled_for_pr_review: true
+    enabled_for_milestone_audit: true
+
+  - glob: docs/architecture/*.md
+    category: architecture
+    authority: primary
+    priority: 55
+    relevant_code_paths: ["app/**", "deploy/**"]
+    maximum_characters: 12000
+    enabled_for_pr_review: true
+    enabled_for_milestone_audit: true
+
+  - glob: docs/qa/*.md
+    category: testing-and-qa
+    authority: primary
+    priority: 50
+    relevant_code_paths: ["tests/**"]
+    maximum_characters: 12000
+    enabled_for_pr_review: true
+    enabled_for_milestone_audit: true

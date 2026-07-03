@@ -1,0 +1,15 @@
+# Chateau Collective -- AI review tooling dependencies (CI only)
+# Install with: pip install -r requirements-ai.txt
+#
+# Used exclusively by the advisory AI workflows under .github/workflows/
+# (ai-contextual-pr-review, ai-security-triage, ai-milestone-audit) and the
+# shared package in tools/ai_review. These are NOT runtime dependencies of
+# the Flask application and must never be added to requirements.txt.
+#
+# Pin to known-good versions; update deliberately after review.
+
+openai==2.44.0
+pydantic==2.13.4
+PyYAML==6.0.3
+pypdf==6.14.2
+requests==2.34.2

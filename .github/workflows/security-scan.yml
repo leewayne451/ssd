@@ -22,6 +22,7 @@ jobs:
     # Do not rename without updating the required status checks.
     name: Run Security Scans
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
       - name: Checkout repository
@@ -47,16 +48,27 @@ jobs:
           python -c "import pkg_resources" || { echo "::error::pkg_resources still missing"; exit 1; }
           pip install -r requirements.txt -r requirements-dev.txt
 
-      - name: "Run Bandit SAST (config: security/bandit.yaml)"
+      # Scanners stay authoritative: the gating passes keep their native exit
+      # codes (captured via continue-on-error) and the final gate step
+      # re-applies the original pass/fail policy AFTER the reports have been
+      # uploaded, so report generation never turns a failing scan into a
+      # passing one and the AI triage workflow always receives the reports.
+      - name: "Run Bandit SAST (JSON report, config: security/bandit.yaml)"
         run: |
           mkdir -p reports
-          # JSON report for the evidence pack (non-gating pass) …
+          # JSON report for the evidence pack and AI triage (non-gating pass) …
           bandit -c security/bandit.yaml -r app -f json -o reports/bandit.json || true
-          # … and the gating pass: any finding fails the build (repo is
-          # currently clean; keep it that way or justify a skip in the config).
-          bandit -c security/bandit.yaml -r app
+
+      - name: "Run Bandit SAST gate (config: security/bandit.yaml)"
+        id: bandit
+        continue-on-error: true
+        # … and the gating pass: any finding fails the build (repo is
+        # currently clean; keep it that way or justify a skip in the config).
+        run: bandit -c security/bandit.yaml -r app
 
       - name: Run Semgrep SAST (pinned rulesets + project rules)
+        id: semgrep
+        continue-on-error: true
         run: >
           semgrep scan
           --config p/python
@@ -73,6 +85,31 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Write scan metadata
+        if: always()
+        env:
+          RUN_ID: ${{ github.run_id }}
+          HEAD_SHA: ${{ github.sha }}
+          BANDIT_OUTCOME: ${{ steps.bandit.outcome }}
+          SEMGREP_OUTCOME: ${{ steps.semgrep.outcome }}
+        run: |
+          mkdir -p reports
+          python - <<'PY'
+          import json, os
+          json.dump(
+              {
+                  "run_id": os.environ.get("RUN_ID", ""),
+                  "head_sha": os.environ.get("HEAD_SHA", ""),
+                  "bandit_outcome": os.environ.get("BANDIT_OUTCOME", ""),
+                  "semgrep_outcome": os.environ.get("SEMGREP_OUTCOME", ""),
+              },
+              open("reports/scan-metadata.json", "w"),
+              indent=2,
+          )
+          PY
+
+      # Only scanner reports and small metadata are uploaded — never source
+      # code, environment files, databases, logs, uploads or secrets.
       - name: Upload SAST reports
         if: always()
         uses: actions/upload-artifact@v4
@@ -80,3 +117,11 @@ jobs:
           name: sast-reports-${{ github.run_number }}
           path: reports/
           retention-days: 90
+          if-no-files-found: warn
+          overwrite: true  # v4 artifacts are immutable; allow re-run attempts
+
+      - name: Enforce scanner gate
+        if: steps.bandit.outcome == 'failure' || steps.semgrep.outcome == 'failure'
+        run: |
+          echo "::error::Bandit outcome: ${{ steps.bandit.outcome }}; Semgrep outcome: ${{ steps.semgrep.outcome }}"
+          exit 1

@@ -1,0 +1,42 @@
+{
+  "errors": [],
+  "generated_at": "2026-07-01T00:00:00Z",
+  "metrics": {"_totals": {"SEVERITY.HIGH": 1, "SEVERITY.LOW": 2}},
+  "results": [
+    {
+      "code": "import subprocess\n",
+      "filename": "app/services/backup_service.py",
+      "issue_confidence": "HIGH",
+      "issue_cwe": {"id": 78, "link": "https://cwe.mitre.org/data/definitions/78.html"},
+      "issue_severity": "HIGH",
+      "issue_text": "subprocess call with shell=True identified, security issue.",
+      "line_number": 42,
+      "line_range": [42],
+      "more_info": "https://bandit.readthedocs.io/en/1.8.3/plugins/b602_subprocess_popen_with_shell_equals_true.html",
+      "test_id": "B602",
+      "test_name": "subprocess_popen_with_shell_equals_true"
+    },
+    {
+      "code": "app.run(debug=True)\n",
+      "filename": "manage.py",
+      "issue_confidence": "MEDIUM",
+      "issue_severity": "LOW",
+      "issue_text": "A Flask app appears to be run with debug=True.",
+      "line_number": 10,
+      "line_range": [10],
+      "test_id": "B201",
+      "test_name": "flask_debug_true"
+    },
+    {
+      "code": "app.run(debug=True)\n",
+      "filename": "manage.py",
+      "issue_confidence": "MEDIUM",
+      "issue_severity": "LOW",
+      "issue_text": "A Flask app appears to be run with debug=True.",
+      "line_number": 22,
+      "line_range": [22],
+      "test_id": "B201",
+      "test_name": "flask_debug_true"
+    }
+  ]
+}

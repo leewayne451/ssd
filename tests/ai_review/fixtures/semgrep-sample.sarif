@@ -1,0 +1,24 @@
+{
+  "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {"driver": {"name": "Semgrep", "rules": []}},
+      "results": [
+        {
+          "ruleId": "python.lang.security.audit.dangerous-subprocess-use",
+          "level": "error",
+          "message": {"text": "Detected subprocess call with dynamic input."},
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {"uri": "app/services/backup_service.py"},
+                "region": {"startLine": 42}
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
