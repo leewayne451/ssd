@@ -26,6 +26,10 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          # Full history: gitleaks diffs the PR's commit range, which a
+          # shallow (depth-1) clone doesn't contain.
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
