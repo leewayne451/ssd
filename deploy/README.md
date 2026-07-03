@@ -67,6 +67,14 @@ mounted **read-only** into the nginx container. It is never committed to git.
 **TLS policy** (see `chateau-collective.tls.conf`): TLS 1.2 + 1.3 only; ECDHE key
 exchange (forward secrecy); AES-GCM / ChaCha20-Poly1305 AEAD ciphers; HSTS on.
 
+**Automatic renewal** (Let's Encrypt certs last 90 days; issued 3 Jul 2026 →
+expires 1 Oct 2026). Install once on the VM:
+```bash
+(crontab -l 2>/dev/null; echo "30 4 * * * docker run --rm -v /etc/letsencrypt:/etc/letsencrypt -v chateau-collective_certbot-webroot:/var/www/certbot certbot/certbot renew --webroot -w /var/www/certbot --quiet && docker exec chateau-collective-nginx-1 nginx -s reload") | crontab -
+```
+`renew` is a no-op until ~30 days before expiry, then renews and the nginx
+reload picks up the new cert without downtime.
+
 ## CI/CD auto-deploy
 
 `.github/workflows/deploy-aws.yml` runs on every push to `main`: it SSHes to the

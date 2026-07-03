@@ -50,8 +50,10 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      # Active site config. Swap to chateau-collective.tls.conf once certs exist.
-      - ./deploy/nginx/chateau-collective.conf:/etc/nginx/conf.d/default.conf:ro
+      # Active site config: TLS (cert issued 3 Jul 2026 via certbot webroot).
+      # The plain-HTTP config (chateau-collective.conf) remains available for
+      # bootstrap/recovery on a fresh VM before certs exist.
+      - ./deploy/nginx/chateau-collective.tls.conf:/etc/nginx/conf.d/default.conf:ro
       # Let's Encrypt certs (populated by certbot on the host) + ACME webroot.
       - /etc/letsencrypt:/etc/letsencrypt:ro
       - certbot-webroot:/var/www/certbot
