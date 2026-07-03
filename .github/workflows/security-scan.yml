@@ -6,10 +6,14 @@ on:
   pull_request:
     branches: [ "main" ]
 
+permissions:
+  contents: read
+
 jobs:
   security-scan:
     name: Run Security Scans
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
       - name: Checkout repository
@@ -26,8 +30,58 @@ jobs:
           pip install --upgrade --no-cache-dir -r requirements.txt
           pip install --upgrade --no-cache-dir -r requirements-dev.txt
 
+      # Scanners stay authoritative: each step keeps its native exit code
+      # (captured via continue-on-error) and the final gate step re-applies
+      # the original pass/fail policy after the reports are uploaded.
       - name: Run Bandit security scan
-        run: bandit -r app
+        id: bandit
+        continue-on-error: true
+        run: bandit -r app -f json -o bandit-report.json
 
       - name: Run Semgrep scan
-        run: semgrep scan --config auto app
+        id: semgrep
+        continue-on-error: true
+        run: semgrep scan --config auto app --json --output semgrep-report.json
+
+      - name: Write scan metadata
+        if: always()
+        env:
+          RUN_ID: ${{ github.run_id }}
+          HEAD_SHA: ${{ github.sha }}
+          BANDIT_OUTCOME: ${{ steps.bandit.outcome }}
+          SEMGREP_OUTCOME: ${{ steps.semgrep.outcome }}
+        run: |
+          python - <<'PY'
+          import json, os
+          json.dump(
+              {
+                  "run_id": os.environ.get("RUN_ID", ""),
+                  "head_sha": os.environ.get("HEAD_SHA", ""),
+                  "bandit_outcome": os.environ.get("BANDIT_OUTCOME", ""),
+                  "semgrep_outcome": os.environ.get("SEMGREP_OUTCOME", ""),
+              },
+              open("scan-metadata.json", "w"),
+              indent=2,
+          )
+          PY
+
+      # Only scanner reports and small metadata are uploaded -- never source
+      # code, environment files, databases, logs, uploads or secrets.
+      - name: Upload scanner reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-scan-reports-${{ github.run_id }}
+          path: |
+            bandit-report.json
+            semgrep-report.json
+            scan-metadata.json
+          retention-days: 7
+          if-no-files-found: warn
+          overwrite: true  # v4 artifacts are immutable; allow re-run attempts
+
+      - name: Enforce scanner gate
+        if: steps.bandit.outcome == 'failure' || steps.semgrep.outcome == 'failure'
+        run: |
+          echo "::error::Bandit outcome: ${{ steps.bandit.outcome }}; Semgrep outcome: ${{ steps.semgrep.outcome }}"
+          exit 1

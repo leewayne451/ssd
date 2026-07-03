@@ -1,0 +1,109 @@
+# Advisory AI triage of Bandit/Semgrep findings from the Security Scan run.
+#
+# Trust model: runs via workflow_run, so only trusted default-branch scripts
+# execute. Scanner-report artifacts are downloaded as data and parsed locally;
+# nothing in them is executed. The OpenAI API is skipped entirely when the
+# scanners reported no findings. Triage never suppresses, resolves or alters
+# any scanner result -- the Security Scan gate remains authoritative.
+#
+# See docs/ai-review-setup.md.
+
+name: AI Security Triage
+
+on:
+  workflow_run:
+    workflows: ["Security Scan"]
+    types: [completed]
+
+permissions: {}
+
+jobs:
+  triage:
+    name: AI scanner triage (advisory)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Run for completed scans of same-repository activity (success OR failure:
+    # a failing gate usually means findings, which is exactly when triage helps).
+    if: >
+      (github.event.workflow_run.conclusion == 'success' ||
+       github.event.workflow_run.conclusion == 'failure') &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    permissions:
+      contents: read        # check out trusted default-branch tooling
+      actions: read         # download artifacts from the triggering run
+      pull-requests: write  # upsert the single triage comment
+      issues: write         # PR conversation comments use the issues endpoint
+    concurrency:
+      group: ai-security-triage-${{ github.event.workflow_run.head_branch }}
+      cancel-in-progress: true
+
+    steps:
+      - name: Check out trusted default-branch code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install AI tooling dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --no-cache-dir -r requirements-ai.txt
+
+      - name: Download scanner reports from the triggering run
+        uses: actions/download-artifact@v4
+        with:
+          name: security-scan-reports-${{ github.event.workflow_run.id }}
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: scan-reports
+
+      - name: Resolve associated pull request
+        id: pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          pr_number="$(gh api "repos/${GITHUB_REPOSITORY}/commits/${HEAD_SHA}/pulls" \
+            --jq '[.[] | select(.state == "open")
+                       | select(.head.repo.full_name == .base.repo.full_name)
+                       | .number][0] // empty')"
+          if [ -z "${pr_number}" ]; then
+            echo "No associated open same-repository pull request."
+          else
+            echo "Resolved pull request #${pr_number}."
+          fi
+          echo "number=${pr_number}" >> "${GITHUB_OUTPUT}"
+
+      - name: Run AI scanner triage
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+          AI_TRIAGE_MODEL: ${{ vars.AI_TRIAGE_MODEL }}
+        run: |
+          python -m tools.ai_review.triage_scans \
+            --bandit scan-reports/bandit-report.json \
+            --semgrep scan-reports/semgrep-report.json \
+            --output ai-security-triage.md
+
+      - name: Publish triage report to the job summary
+        if: always()
+        run: |
+          if [ -f ai-security-triage.md ]; then
+            cat ai-security-triage.md >> "${GITHUB_STEP_SUMMARY}"
+          fi
+
+      - name: Upload rendered triage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-security-triage-${{ github.run_id }}
+          path: ai-security-triage.md
+          retention-days: 5
+          if-no-files-found: ignore
+          overwrite: true  # v4 artifacts are immutable; allow re-run attempts

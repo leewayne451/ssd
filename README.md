@@ -208,9 +208,12 @@ The current repository structure is:
 ICT2216_Secure-Software-Development/
 |-- .github
 |   +-- workflows                           # CI/CD pipelines
+|       |-- ai-contextual-pr-review.yml     # Advisory AI PR review
+|       |-- ai-milestone-audit.yml          # Advisory AI consistency audit
+|       |-- ai-security-triage.yml          # Advisory AI scanner triage
 |       |-- ci.yml                          # pytest + lint + pip-audit
 |       |-- deploy-aws.yml                  # Auto-deploy to AWS VM
-|       |-- security-scan.yml               # Bandit + Semgrep   
+|       |-- security-scan.yml               # Bandit + Semgrep + JSON reports
 |       +-- zap-baseline.yml                # OWASP ZAP DAST
 |-- app
 |   |-- models                              # ── Data/Storage Layer ──
@@ -337,6 +340,7 @@ ICT2216_Secure-Software-Development/
 |   |-- bandit.yaml
 |   +-- semgrep.yaml
 |-- tests
+|   |-- ai_review                           # AI tooling unit tests (mocked)
 |   |-- integration                         # End-to-end flow tests
 |   |-- security                            # OWASP-specific tests
 |   |-- unit
@@ -345,12 +349,15 @@ ICT2216_Secure-Software-Development/
 |   |   +-- services
 |   |-- conftest.py
 |   +-- test_app_boots.py
+|-- tools
+|   +-- ai_review                           # Advisory AI review tooling (CI only)
 |-- .env.example
 |-- .gitignore
 |-- manage.py                               # CLI commands
 |-- README.md
 |-- requirements.txt
 |-- requirements-dev.txt
+|-- requirements-ai.txt                     # AI workflow dependencies (CI only)
 +-- wsgi.py                                 # WSGI entry point
 ```
 
@@ -503,6 +510,15 @@ Required repository secrets:
 - `AWS_HOST`
 - `AWS_SSH_KEY`
 - `AWS_USER`
+
+### Advisory AI review workflows
+
+Three additional workflows (`ai-contextual-pr-review.yml`,
+`ai-security-triage.yml`, `ai-milestone-audit.yml`) provide advisory,
+AI-assisted PR review, scanner triage and milestone consistency audits. They
+never gate, approve, merge or modify anything; the deterministic tools above
+remain authoritative. See [docs/ai-review-setup.md](docs/ai-review-setup.md)
+for the trust model, configuration and operating instructions.
 
 ## Security Design Notes
 

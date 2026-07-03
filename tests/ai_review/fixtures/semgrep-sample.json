@@ -1,0 +1,18 @@
+{
+  "version": "1.118.0",
+  "results": [
+    {
+      "check_id": "python.flask.security.audit.render-template-string.render-template-string",
+      "path": "app/web/routes/listing_routes.py",
+      "start": {"line": 88, "col": 12},
+      "end": {"line": 88, "col": 60},
+      "extra": {
+        "message": "Found render_template_string with user data; possible server-side template injection.",
+        "severity": "ERROR",
+        "metadata": {"owasp": ["A03:2021 - Injection"]}
+      }
+    }
+  ],
+  "errors": [],
+  "paths": {"scanned": ["app"]}
+}
