@@ -83,3 +83,28 @@ docker compose logs -f web        # app logs
 docker compose up -d --build      # redeploy after code change
 docker compose down               # stop the stack
 ```
+
+## School EC2 constraints & disaster recovery
+
+Per teaching-faculty rules for the provided EC2 instances:
+
+- **Allowed inbound ports: TCP 22, 80, 443, 8080, 8888 only** (pre-opened in
+  the AWS Security Group). We use 22/80/443 and bind nothing to 8080/8888.
+- **Do NOT enable ufw on the VM.** The Security Group already does the
+  filtering, and Docker's published ports bypass ufw's rules anyway (Docker
+  programs iptables directly), so ufw adds lockout risk (SSH) without adding
+  protection. If it is ever enabled, `sudo ufw allow 22/tcp` FIRST.
+- **The EC2 can be reset if unrecoverable — treat the VM as disposable.**
+  Everything needed to rebuild is in this repo (Dockerfile, compose, this
+  runbook); the *only* state that must leave the VM regularly:
+    1. `~/backups/chateau/` (DB snapshots + checksums, from backup.sh) —
+       download to a team member's machine at least weekly and before freeze
+       (WinSCP or `pscp -i key.ppk -r student31@<ip>:backups/chateau .`).
+    2. The uploads volume (listing images) if re-shootable demo data matters.
+  The `.env` SECRET_KEY and TLS certs are re-creatable (new key just logs
+  everyone out; certbot re-issues certs).
+- **A reset may change the public IP.** Mitigation: point the `AWS_HOST`
+  GitHub secret and browsers at the **DuckDNS domain**, never the raw IP —
+  after an IP change, update the IP once in the DuckDNS dashboard and
+  everything (deploys, uptime monitor, bookmarks) keeps working.
+- Access credentials (IP, username, key file) stay within the team only.
