@@ -1,6 +1,8 @@
+import logging
 from typing import Dict
 
 from app.extensions import db
+from app.models.enums import UserRole
 from app.models.order import Order
 from app.models.order_status_history import OrderStatusHistory
 from app.services.audit_service import record as audit_record
@@ -20,11 +22,27 @@ ALLOWED_TRANSITIONS: Dict[str, set] = {
     "available": {"committed"},
 }
 
+ALLOWED_ACTOR_ROLES: Dict[str, Dict[str, set[str]]] = {
+    "available": {"committed": {UserRole.BUYER.value, UserRole.ADMIN.value}},
+    "committed": {"awaiting_shipment": {UserRole.SELLER.value, UserRole.ADMIN.value}, "rejected": {UserRole.SELLER.value, UserRole.ADMIN.value}},
+    "awaiting_shipment": {"shipped": {UserRole.SELLER.value, UserRole.ADMIN.value}, "rejected": {UserRole.SELLER.value, UserRole.ADMIN.value}},
+    "shipped": {"sold": {UserRole.ADMIN.value}},
+    "under_authentication": {"authenticated": {UserRole.ADMIN.value}, "rejected": {UserRole.ADMIN.value}},
+}
+
 
 def can_transition(old: str, new: str) -> bool:
     """Return True when a transition old->new is permitted."""
     allowed = ALLOWED_TRANSITIONS.get(old, set())
     return new in allowed
+
+
+def is_actor_allowed(old: str, new: str, actor_user) -> bool:
+    """Return True when the actor's role is allowed for this transition."""
+    if actor_user is None:
+        return False
+    transition_roles = ALLOWED_ACTOR_ROLES.get(old, {}).get(new, set())
+    return actor_user.role.value in transition_roles or actor_user.role.value == UserRole.ADMIN.value
 
 
 def transition_order(order: Order, new_status: str, actor_user) -> Order:
@@ -36,6 +54,11 @@ def transition_order(order: Order, new_status: str, actor_user) -> Order:
     old = order.workflow_status.value if hasattr(order.workflow_status, "value") else str(order.workflow_status)
     if not can_transition(old, new_status):
         raise ValueError(f"illegal workflow transition: {old} -> {new_status}")
+
+    if not is_actor_allowed(old, new_status, actor_user):
+        raise PermissionError(
+            f"role '{actor_user.role.value if actor_user else 'none'}' not authorized for transition {old} -> {new_status}"
+        )
 
     # perform transition
     order.workflow_status = new_status
@@ -56,11 +79,13 @@ def transition_order(order: Order, new_status: str, actor_user) -> Order:
         raise
 
     # audit the change (best-effort)
-    try:
-        audit_record(actor_user, "order_status_changed", target="order", target_id=order.id, meta={"old": old, "new": new_status})
-    except Exception:
-        # swallow audit errors
-        pass
+    if not audit_record(actor_user, "order_status_changed", target="order", target_id=order.id, meta={"old": old, "new": new_status}):
+        logger.error(
+            "Audit logging failed for workflow transition: %s -> %s order_id=%s",
+            old,
+            new_status,
+            order.id,
+        )
 
     return order
 # workflow_service — business logic layer.

@@ -4,14 +4,18 @@ This module creates Order rows using server-side trusted listing prices,
 records status history rows, and clears cart items after successful
 placement. It delegates workflow checks to `workflow_service`.
 """
+import logging
 from typing import List
 
 from app.extensions import db
 from app.models.order import Order
+from app.models.enums import WorkflowStatus
 from app.models.product_listing import ProductListing
 from app.models.cart_item import CartItem
 from app.services.workflow_service import transition_order
 from app.services.audit_service import record as audit_record
+
+logger = logging.getLogger(__name__)
 
 
 def place_orders_from_cart(user) -> List[Order]:
@@ -37,26 +41,24 @@ def place_orders_from_cart(user) -> List[Order]:
 			buyer_id=user.id,
 			listing_id=listing.id,
 			committed_price=listing.price,
+			workflow_status=WorkflowStatus.AVAILABLE,
 		)
 		db.session.add(order)
 		db.session.flush()  # get PK
 
-		# record initial workflow history: committed -> committed (creation)
-		try:
-			transition_order(order, "committed", user)
-		except ValueError:
-			# shouldn't happen for creation; ignore and continue
-			pass
+		# record initial workflow history: available -> committed (creation)
+		transition_order(order, "committed", user)
 
 		created.append(order)
 
 	# clear cart after placing orders
 	clear_cart(user)
 
-	try:
-		audit_record(user, "order_placed", target="order", meta={"count": len(created)})
-	except Exception:
-		pass
+	if not audit_record(user, "order_placed", target="order", meta={"count": len(created)}):
+		logger.error(
+			"Audit logging failed for order placement: count=%d",
+			len(created),
+		)
 
 	return created
 

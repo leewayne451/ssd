@@ -1,7 +1,13 @@
 # audit_service — business logic layer.
-from flask import request
+import logging
+
+from flask import has_request_context, request
+from sqlalchemy.exc import SQLAlchemyError
+
 from app.extensions import db
 from app.models.audit_log import AuditLog
+
+logger = logging.getLogger(__name__)
 
 
 def record(actor, action, target=None, target_id=None, meta=None):
@@ -29,7 +35,8 @@ def record(actor, action, target=None, target_id=None, meta=None):
         )
         db.session.add(entry)
         db.session.commit()
-    except Exception:
+        return True
+    except SQLAlchemyError as exc:
         db.session.rollback()
-        # swallow the error — logging should never take down the caller's route
-        # consider adding real error logging here (e.g. app.logger.exception(...))
+        logger.exception("Audit logging failed: %s", exc)
+        return False
