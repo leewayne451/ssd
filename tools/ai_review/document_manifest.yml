@@ -51,6 +51,27 @@ documents:
     enabled_for_pr_review: true
     enabled_for_milestone_audit: true
 
+  # The README was slimmed (PR #70); these carry the authoritative
+  # architecture + CI/CD inventory that used to live in it. Without them the
+  # PR reviewer judges against a stale workflow list.
+  - glob: docs/architecture/overview.md
+    category: architecture-and-workflow-states
+    authority: primary
+    priority: 69
+    relevant_code_paths: ["app/**", "deploy/**", ".github/**", "tests/**", "security/**"]
+    maximum_characters: 15000
+    enabled_for_pr_review: true
+    enabled_for_milestone_audit: true
+
+  - glob: docs/architecture/ci_cd.md
+    category: ci-cd-pipeline-inventory
+    authority: primary
+    priority: 68
+    relevant_code_paths: [".github/**", "deploy/**", "security/**", "tests/**"]
+    maximum_characters: 12000
+    enabled_for_pr_review: true
+    enabled_for_milestone_audit: true
+
   - glob: docs/d2/deliverable_2_gap_checklist.md
     category: development-plan
     authority: primary

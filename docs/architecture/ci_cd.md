@@ -85,3 +85,30 @@ manually via `workflow_dispatch`.
 
 - `curl` the deployed site's `/healthz` endpoint using the `APP_URL` repository
   variable; skips silently until `APP_URL` is configured.
+
+## Concurrency & run-retention policy
+
+Validation runs are D2 evidence, so cancellation is branch-dependent:
+
+| Where | Behaviour | Why |
+|---|---|---|
+| PR / feature branches | New push **cancels** the superseded in-flight run | Only the latest code matters; saves runner minutes |
+| `main` | Runs **queue, never cancelled** | Every merge commit keeps a complete validation record |
+| Deploys (any) | **Never cancelled** once started | A half-finished deploy leaves the VM in an unknown state |
+
+Implementation: `cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}`
+in `ci.yml`, `security-scan.yml`, `dast-zap.yml`, `image-scan.yml`;
+`cancel-in-progress: false` in `deploy-aws.yml`.
+
+Guards and verification:
+
+- `tests/unit/test_workflow_policies.py` asserts the exact expressions, that
+  every workflow declares token `permissions`, and that files referenced by
+  this document exist (structural guard — it cannot prove GitHub's runtime
+  evaluation).
+- Runtime behaviour was verified empirically: merge commit `c1e0867` had its
+  runs cancelled by a merge 32 s later (the incident that motivated this
+  policy), and post-fix merges each retain complete run sets.
+- After any future workflow-policy change, re-verify manually once: push
+  twice to a PR branch (first run should cancel), and merge two PRs in quick
+  succession (both main run sets should complete).
