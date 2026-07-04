@@ -45,3 +45,7 @@ docs/
 .vscode/
 .DS_Store
 Thumbs.db
+
+# CI-only AI review tooling — never in the production image
+requirements-ai.txt
+tools/

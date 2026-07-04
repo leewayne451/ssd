@@ -44,15 +44,38 @@ jobs:
             docker image prune -f
 
             echo "==> Health gate"
+            healthy=0
             for i in $(seq 1 15); do
               if curl -fsS http://127.0.0.1/healthz >/dev/null 2>&1; then
                 echo "Healthcheck passed on attempt $i"
-                exit 0
+                healthy=1
+                break
               fi
               echo "waiting for app to become healthy... ($i/15)"
               sleep 4
             done
-            echo "ERROR: app did not become healthy after deploy" >&2
-            docker compose ps
-            docker compose logs --tail=50 web || true
-            exit 1
+            if [ "$healthy" -ne 1 ]; then
+              echo "ERROR: app did not become healthy after deploy" >&2
+              docker compose ps
+              docker compose logs --tail=50 web || true
+              exit 1
+            fi
+
+            echo "==> Security-header gate"
+            # Headers come ONLY from the app (app/security/headers.py) since
+            # nginx stopped duplicating them — verify they reach live responses.
+            # -k: cert is issued for the public domain, not 127.0.0.1.
+            hdrs=$(curl -ksSI https://127.0.0.1/ || true)
+            missing=0
+            for h in Strict-Transport-Security Content-Security-Policy \
+                     X-Content-Type-Options X-Frame-Options Referrer-Policy; do
+              if ! printf '%s' "$hdrs" | grep -qi "^$h:"; then
+                echo "ERROR: security header missing from live response: $h" >&2
+                missing=1
+              fi
+            done
+            if [ "$missing" -ne 0 ]; then
+              printf '%s\n' "$hdrs" >&2
+              exit 1
+            fi
+            echo "All required security headers present on live response"

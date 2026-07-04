@@ -20,6 +20,12 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: imagescan-${{ github.ref }}
+  # Cancel superseded runs on PR branches only — on main every merge commit
+  # keeps its own complete validation record (and evidence screenshot).
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 jobs:
   trivy:
     name: Build image and scan with Trivy
