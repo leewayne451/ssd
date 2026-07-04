@@ -140,6 +140,12 @@ def admin_user(make_user):
 # ---------------------------------------------------------------------------
 
 @pytest.fixture()
+def buyer_user(buyer):
+    """Alias for buyer fixture — for M4 consistency."""
+    return buyer
+
+
+@pytest.fixture()
 def auth_client(client, buyer):
     """
     Test client with an active buyer session.
@@ -152,3 +158,45 @@ def auth_client(client, buyer):
         sess["user_id"] = buyer.id
         sess["user_role"] = buyer.role.value
     return client
+
+
+# ---------------------------------------------------------------------------
+# M4 Cart & Order fixtures
+# ---------------------------------------------------------------------------
+
+@pytest.fixture()
+def approved_listing(seller_user, db_session):
+    """A ready-to-use approved product listing."""
+    from app.models.product_listing import ProductListing
+    from app.models.enums import ListingCondition, ApprovalStatus
+
+    listing = ProductListing(
+        seller_id=seller_user.id,
+        title="Test Product",
+        description="A test product for cart and order tests",
+        category="electronics",
+        brand="TestBrand",
+        price=99.99,
+        condition=ListingCondition.NEW,
+        approval_status=ApprovalStatus.APPROVED,
+    )
+    db_session.add(listing)
+    db_session.flush()
+    return listing
+
+
+@pytest.fixture()
+def order(buyer_user, approved_listing, db_session):
+    """A ready-to-use order for workflow testing."""
+    from app.models.order import Order
+    from app.models.enums import WorkflowStatus
+
+    order = Order(
+        buyer_id=buyer_user.id,
+        listing_id=approved_listing.id,
+        committed_price=approved_listing.price,
+        workflow_status=WorkflowStatus.COMMITTED,
+    )
+    db_session.add(order)
+    db_session.flush()
+    return order

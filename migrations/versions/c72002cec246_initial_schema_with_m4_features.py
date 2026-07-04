@@ -1,8 +1,8 @@
-"""Initial schema
+"""Initial schema with M4 features
 
-Revision ID: 1d34f6095820
+Revision ID: c72002cec246
 Revises: 
-Create Date: 2026-06-30 12:31:21.938363
+Create Date: 2026-07-04 12:10:24.178546
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '1d34f6095820'
+revision = 'c72002cec246'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -26,11 +26,13 @@ def upgrade():
     sa.Column('status', sa.Enum('ACTIVE', 'SUSPENDED', name='accountstatus'), nullable=False),
     sa.Column('created_at', sa.DateTime(), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=False),
     sa.Column('updated_at', sa.DateTime(), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=False),
-    sa.Column('last_login', sa.DateTime(), nullable=True),
+    sa.Column('last_login', sa.DateTime(timezone=True), nullable=True),
     sa.Column('failed_login_attempts', sa.Integer(), nullable=True),
-    sa.Column('locked_until', sa.DateTime(), nullable=True),
+    sa.Column('locked_until', sa.DateTime(timezone=True), nullable=True),
     sa.Column('email_confirmed', sa.Boolean(), nullable=True),
     sa.Column('email_confirmed_at', sa.DateTime(), nullable=True),
+    sa.Column('totp_secret', sa.String(length=64), nullable=True),
+    sa.Column('totp_enabled', sa.Boolean(), nullable=False),
     sa.PrimaryKeyConstraint('id')
     )
     with op.batch_alter_table('users', schema=None) as batch_op:
@@ -96,6 +98,9 @@ def upgrade():
     sa.Column('last_name', sa.String(length=100), nullable=False),
     sa.Column('phone_number', sa.String(length=20), nullable=True),
     sa.Column('address', sa.Text(), nullable=True),
+    sa.Column('bio', sa.Text(), nullable=True),
+    sa.Column('created_at', sa.DateTime(), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=False),
+    sa.Column('updated_at', sa.DateTime(), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=False),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('user_id')
@@ -131,6 +136,7 @@ def upgrade():
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('cart_id', sa.Integer(), nullable=False),
     sa.Column('listing_id', sa.Integer(), nullable=False),
+    sa.Column('quantity', sa.Integer(), nullable=False),
     sa.Column('added_at', sa.DateTime(), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=False),
     sa.ForeignKeyConstraint(['cart_id'], ['carts.id'], ),
     sa.ForeignKeyConstraint(['listing_id'], ['product_listings.id'], ),
