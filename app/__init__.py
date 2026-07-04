@@ -53,6 +53,13 @@ def create_app(config_name=None):
     from app.utils.decorators import inject_current_user
     app.context_processor(inject_current_user)
 
+    if app.config.get("TESTING"):
+        from flask_wtf.csrf import generate_csrf
+
+        @app.route("/_test/csrf-token", methods=["GET"])
+        def _test_csrf_token():
+            return generate_csrf()
+
     from app.security.session_policy import check_inactivity_timeout, set_activity_timestamp
 
     @app.before_request

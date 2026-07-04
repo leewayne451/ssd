@@ -168,6 +168,17 @@ class TestPdfExtraction:
         assert "SFR-2" in pdf_doc.text
         assert len(pdf_doc.text) <= settings.max_doc_chars + 100
 
+    def test_malformed_pdf_fails_safely(self, doc_repo, settings):
+        root, manifest = doc_repo
+        (root / "docs" / "report.pdf").write_bytes(b"%PDF-1.4 broken content without xref")
+
+        ctx = load_documents(manifest, root, settings, purpose="milestone_audit")
+        pdf_doc = next(
+            d for d in ctx.unavailable if d.category == "deliverable-1-brief"
+        )
+        assert pdf_doc.status == STATUS_EXTRACTION_FAILED
+        assert "no extractable text" in pdf_doc.note or "extraction failed" in pdf_doc.note
+
 
 class TestRelevance:
     def test_pr_review_selects_only_relevant_documents(self, doc_repo, settings):

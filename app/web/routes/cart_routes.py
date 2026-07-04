@@ -42,8 +42,9 @@ def add_to_cart():
 	if current_user is None:
 		abort(401)
 
-	listing_id = request.form.get("listing_id") or request.json and request.json.get("listing_id")
-	quantity = request.form.get("quantity") or (request.json and request.json.get("quantity"))
+	json_data = request.get_json(silent=True) or {}
+	listing_id = request.form.get("listing_id") or json_data.get("listing_id")
+	quantity = request.form.get("quantity") or json_data.get("quantity")
 
 	if listing_id is None:
 		return jsonify({"error": "listing_id required"}), 400
@@ -63,7 +64,8 @@ def remove_from_cart():
 	if current_user is None:
 		abort(401)
 
-	listing_id = request.form.get("listing_id") or request.json and request.json.get("listing_id")
+	json_data = request.get_json(silent=True) or {}
+	listing_id = request.form.get("listing_id") or json_data.get("listing_id")
 	if listing_id is None:
 		return jsonify({"error": "listing_id required"}), 400
 
@@ -88,8 +90,9 @@ def update_cart_item():
 	if current_user is None:
 		abort(401)
 
-	listing_id = request.form.get("listing_id") or (request.json and request.json.get("listing_id"))
-	quantity = request.form.get("quantity") or (request.json and request.json.get("quantity"))
+	json_data = request.get_json(silent=True) or {}
+	listing_id = request.form.get("listing_id") or json_data.get("listing_id")
+	quantity = request.form.get("quantity") or json_data.get("quantity")
 
 	if listing_id is None or quantity is None:
 		return jsonify({"error": "listing_id and quantity required"}), 400

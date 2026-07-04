@@ -1,5 +1,7 @@
 from flask import Blueprint, jsonify, abort, request
 
+from app.models.enums import UserRole
+from app.models.product_listing import ProductListing
 from app.services.auth_service import get_current_user
 from app.services import order_service
 from app.services.workflow_service import transition_order
@@ -24,7 +26,8 @@ def change_order_status(order_id):
 	if current_user is None:
 		abort(401)
 
-	new_status = request.form.get("new_status") or (request.json and request.json.get("new_status"))
+	json_data = request.get_json(silent=True) or {}
+	new_status = request.form.get("new_status") or json_data.get("new_status")
 	if not new_status:
 		return jsonify({"error": "new_status required"}), 400
 
@@ -34,14 +37,25 @@ def change_order_status(order_id):
 	if not order:
 		abort(404)
 
-	# ownership: only buyer who placed the order may change it in this phase
-	if order.buyer_id != current_user.id:
+	# allow buyer-owned transitions, seller-owned listing transitions, or admin actions
+	if current_user.role == UserRole.ADMIN:
+		pass
+	elif current_user.role == UserRole.SELLER:
+		listing = ProductListing.query.get(order.listing_id)
+		if not listing or listing.seller_id != current_user.id:
+			abort(403)
+	elif current_user.role == UserRole.BUYER:
+		if order.buyer_id != current_user.id:
+			abort(403)
+	else:
 		abort(403)
 
 	try:
 		transition_order(order, new_status, current_user)
 	except ValueError as exc:
 		return jsonify({"error": str(exc)}), 400
+	except PermissionError as exc:
+		return jsonify({"error": str(exc)}), 403
 
 	return jsonify({"id": order.id, "new_status": new_status})
 

@@ -54,11 +54,10 @@ def place_orders_from_cart(user) -> List[Order]:
 	# clear cart after placing orders
 	clear_cart(user)
 
-	if not audit_record(user, "order_placed", target="order", meta={"count": len(created)}):
-		logger.error(
-			"Audit logging failed for order placement: count=%d",
-			len(created),
-		)
+	try:
+		audit_record(user, "order_placed", target="order", meta={"count": len(created)})
+	except Exception as exc:
+		logger.warning("failed to record order_placed audit entry", exc_info=True)
 
 	return created
 

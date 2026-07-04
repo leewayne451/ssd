@@ -38,6 +38,7 @@ def test_place_order_uses_server_side_price(db_session, auth_client, buyer):
     oid = data["created_order_ids"][0]
     order = Order.query.get(oid)
     assert float(order.committed_price) == float(listing.price)
+    assert order.workflow_status == "committed"
 
 
 def test_illegal_transition_rejected(db_session, auth_client, buyer):
@@ -150,3 +151,46 @@ def test_user_cannot_modify_another_users_order(db_session, client, make_user):
         sess["user_role"] = buyer_b.role.value if getattr(buyer_b, 'role', None) else 'buyer'
     r = client.post(f"/orders/{oid}/status", json={"new_status": "awaiting_shipment"})
     assert r.status_code == 403
+
+
+from app.models.enums import UserRole
+
+
+def test_seller_can_transition_committed_order(db_session, client, make_user):
+    from app.models.product_listing import ProductListing
+
+    buyer = make_user("buyer2@test.local")
+    seller = make_user("seller2@test.local", role=UserRole.SELLER)
+
+    listing = ProductListing(
+        seller_id=seller.id,
+        title="ShipItem",
+        description="desc",
+        category="misc",
+        brand="Acme",
+        price=20.00,
+        condition="new",
+        approval_status="approved",
+        workflow_status="available",
+        is_active=True,
+    )
+    db_session.add(listing)
+    db_session.flush()
+
+    with client.session_transaction() as sess:
+        sess["user_id"] = buyer.id
+        sess["user_role"] = buyer.role.value
+
+    r = client.post("/cart/add", json={"listing_id": listing.id})
+    assert r.status_code == 201
+    r = client.post("/orders/place")
+    assert r.status_code == 201
+    oid = r.get_json()["created_order_ids"][0]
+
+    with client.session_transaction() as sess:
+        sess["user_id"] = seller.id
+        sess["user_role"] = seller.role.value
+
+    r = client.post(f"/orders/{oid}/status", json={"new_status": "awaiting_shipment"})
+    assert r.status_code == 200
+    assert r.get_json()["new_status"] == "awaiting_shipment"

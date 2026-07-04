@@ -1,11 +1,15 @@
 import logging
 from typing import Dict
 
+from sqlalchemy.exc import SQLAlchemyError
+
 from app.extensions import db
 from app.models.enums import UserRole
 from app.models.order import Order
 from app.models.order_status_history import OrderStatusHistory
 from app.services.audit_service import record as audit_record
+
+logger = logging.getLogger(__name__)
 
 
 # Define allowed workflow transitions (from -> set(of allowed next states)).
@@ -74,18 +78,15 @@ def transition_order(order: Order, new_status: str, actor_user) -> Order:
 
     try:
         db.session.commit()
-    except Exception:
+    except SQLAlchemyError:
         db.session.rollback()
         raise
 
     # audit the change (best-effort)
-    if not audit_record(actor_user, "order_status_changed", target="order", target_id=order.id, meta={"old": old, "new": new_status}):
-        logger.error(
-            "Audit logging failed for workflow transition: %s -> %s order_id=%s",
-            old,
-            new_status,
-            order.id,
-        )
+    try:
+        audit_record(actor_user, "order_status_changed", target="order", target_id=order.id, meta={"old": old, "new": new_status})
+    except Exception as exc:
+        logger.warning("failed to record order_status_changed audit entry", exc_info=True)
 
     return order
 # workflow_service — business logic layer.
