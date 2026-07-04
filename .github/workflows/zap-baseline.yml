@@ -1,14 +1,18 @@
 name: OWASP ZAP Baseline Scan
 
-# Gated to manual dispatch during development (Phase 1).
-# Re-enable push trigger once the app is deployed and APP_URL secret is set.
+# On-demand DAST against the DEPLOYED site (per-PR DAST runs in dast-zap.yml
+# against an in-CI container instead). Run after significant merges to keep
+# live-site scan evidence current.
 on:
   workflow_dispatch:
     inputs:
       target_url:
-        description: "Target URL to scan (e.g. https://your-domain.com)"
+        description: "Target URL to scan"
         required: true
-        default: "https://placeholder.example.com"
+        default: "https://chateaucollective.duckdns.org"
+
+permissions:
+  contents: read
 
 jobs:
   zap-baseline:
