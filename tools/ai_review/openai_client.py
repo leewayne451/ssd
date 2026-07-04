@@ -69,13 +69,32 @@ def run_structured_request(
         },
     )
 
+    # A response that hit max_output_tokens (or was otherwise cut short) comes
+    # back with status="incomplete" and partial JSON — fail with an actionable
+    # message instead of a confusing JSONDecodeError further down.
+    status = getattr(response, "status", None)
+    if status == "incomplete":
+        details = getattr(response, "incomplete_details", None)
+        reason = getattr(details, "reason", None) or "unknown"
+        usage = getattr(response, "usage", None)
+        out_tokens = getattr(usage, "output_tokens", None) if usage else None
+        raise AIRequestError(
+            f"model response incomplete (reason: {reason}, output tokens used: "
+            f"{out_tokens}, cap: {settings.max_output_tokens}) — raise "
+            "AI_MAX_OUTPUT_TOKENS in the workflow env or reduce the audit scope"
+        )
+
     raw_text = getattr(response, "output_text", "") or ""
     if not raw_text.strip():
         raise AIRequestError("model returned no output text")
     try:
         data = json.loads(raw_text)
     except json.JSONDecodeError as exc:
-        raise AIRequestError(f"model output was not valid JSON: {exc}") from exc
+        raise AIRequestError(
+            f"model output was not valid JSON: {exc} (response status: "
+            f"{status or 'unknown'} — if this recurs, suspect truncation and "
+            "raise AI_MAX_OUTPUT_TOKENS)"
+        ) from exc
     if not isinstance(data, dict):
         raise SchemaValidationError("model output was not a JSON object")
 
