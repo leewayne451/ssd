@@ -14,7 +14,9 @@ permissions:
 
 concurrency:
   group: scan-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # Cancel superseded runs on PR branches only — on main every merge commit
+  # keeps its own complete validation record (and evidence screenshot).
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   security-scan:
