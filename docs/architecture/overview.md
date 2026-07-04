@@ -32,7 +32,13 @@ Responsibilities:
 - Nginx reverse proxy and TLS termination.
 - Gunicorn application serving.
 - Container build, orchestration, and startup migrations.
-- Security headers and baseline web scanning.
+- Baseline web scanning (OWASP ZAP via CI).
+
+> Note: HTTP security headers (HSTS, CSP, X-Frame-Options,
+> X-Content-Type-Options, Referrer-Policy) are emitted **only by the
+> application layer** (`app/security/headers.py`) — nginx intentionally does
+> not duplicate them (doubled headers were flagged by ZAP). The deploy
+> pipeline verifies they are present on live responses after every deploy.
 
 Relevant paths:
 
@@ -56,7 +62,8 @@ Responsibilities:
 - Bind forms and templates to user workflows.
 - Apply application configuration.
 - Initialize database and migration extensions.
-- Apply security headers.
+- Apply security headers (sole source: `app/security/headers.py`, set on
+  every response via `after_request` — including error pages).
 
 Relevant paths:
 
