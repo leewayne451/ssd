@@ -39,6 +39,40 @@ def test_all_workflows_parse_as_yaml():
         yaml.safe_load(f.read_text(encoding="utf-8"))  # raises on breakage
 
 
+def test_policy_covered_workflows_exist():
+    """Fail with a clear message (not a FileNotFoundError) if a workflow in
+    the policy set is renamed/removed without updating this test."""
+    actual = {f.name for f in WORKFLOWS_DIR.glob("*.yml")}
+    missing = sorted((CONDITIONAL_CANCEL | {"deploy-aws.yml"}) - actual)
+    assert not missing, (
+        f"policy-covered workflow file(s) not found: {missing} — "
+        "if a workflow was renamed, update CONDITIONAL_CANCEL in this test "
+        "and any documentation referencing it"
+    )
+
+
+def test_docs_reference_only_real_workflow_files():
+    """Anti-drift guard: any *.yml the CI/CD architecture doc mentions must
+    actually exist (workflow files under .github/workflows, compose files in
+    the repo root)."""
+    import re
+
+    repo_root = WORKFLOWS_DIR.parents[1]
+    doc = repo_root / "docs" / "architecture" / "ci_cd.md"
+    if not doc.exists():  # doc is optional; the guard is not load-bearing
+        return
+    mentioned = set(re.findall(r"\b[\w.-]+\.ya?ml\b", doc.read_text(encoding="utf-8")))
+    search_dirs = [WORKFLOWS_DIR, repo_root, repo_root / "security"]
+    missing = sorted(
+        name
+        for name in mentioned
+        if not any((d / name).exists() for d in search_dirs)
+    )
+    assert not missing, (
+        f"docs/architecture/ci_cd.md references non-existent file(s): {missing}"
+    )
+
+
 def test_scan_workflows_never_cancel_runs_on_main():
     for name in sorted(CONDITIONAL_CANCEL):
         wf = _load(name)
