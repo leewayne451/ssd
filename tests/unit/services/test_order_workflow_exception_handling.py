@@ -42,7 +42,7 @@ def test_place_orders_from_cart_logs_audit_exception(app, db_session, buyer, cap
     assert "Audit logging failed for order placement" in caplog.text
 
 
-def test_transition_order_logs_audit_exception(app, db_session, buyer, caplog, monkeypatch):
+def test_transition_order_logs_audit_exception(app, db_session, buyer, admin_user, caplog, monkeypatch):
     listing = ProductListing(
         seller_id=buyer.id,
         title="Test Item",
@@ -76,7 +76,7 @@ def test_transition_order_logs_audit_exception(app, db_session, buyer, caplog, m
     monkeypatch.setattr(workflow_service_module, "audit_record", fail_audit)
 
     caplog.set_level("ERROR")
-    updated_order = transition_order(order, "awaiting_shipment", buyer)
+    updated_order = transition_order(order, "awaiting_shipment", admin_user)
 
     assert updated_order.workflow_status == "awaiting_shipment"
     assert "Audit logging failed for workflow transition" in caplog.text
