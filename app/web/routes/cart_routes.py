@@ -42,13 +42,14 @@ def add_to_cart():
 		abort(401)
 
 	listing_id = request.form.get("listing_id") or request.json and request.json.get("listing_id")
-	quantity = request.form.get("quantity") or request.json and request.json.get("quantity")
+	quantity = request.form.get("quantity") or (request.json and request.json.get("quantity"))
 
 	if listing_id is None:
 		return jsonify({"error": "listing_id required"}), 400
 
 	try:
-		item = cart_service.add_item(current_user, int(listing_id), quantity or 1)
+		q = int(quantity) if quantity is not None else 1
+		item = cart_service.add_item(current_user, int(listing_id), q)
 	except ValueError as exc:
 		return jsonify({"error": str(exc)}), 400
 
@@ -78,4 +79,26 @@ def clear_cart():
 		abort(401)
 	cart_service.clear_cart(current_user)
 	return jsonify({"cleared": True})
+
+
+@cart_bp.route("/update", methods=["POST"])
+def update_cart_item():
+	current_user = get_current_user()
+	if current_user is None:
+		abort(401)
+
+	listing_id = request.form.get("listing_id") or (request.json and request.json.get("listing_id"))
+	quantity = request.form.get("quantity") or (request.json and request.json.get("quantity"))
+
+	if listing_id is None or quantity is None:
+		return jsonify({"error": "listing_id and quantity required"}), 400
+
+	try:
+		ok = cart_service.update_item_quantity(current_user, int(listing_id), int(quantity))
+	except ValueError as exc:
+		return jsonify({"error": str(exc)}), 400
+
+	if not ok:
+		return jsonify({"error": "not found"}), 404
+	return jsonify({"updated": True})
 

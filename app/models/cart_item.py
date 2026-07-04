@@ -8,5 +8,6 @@ class CartItem(db.Model):
     cart_id = db.Column(db.Integer, db.ForeignKey("carts.id"), nullable=False)
     listing_id = db.Column(db.Integer, db.ForeignKey("product_listings.id"), nullable=False)
     added_at = db.Column(db.DateTime, nullable=False, server_default=db.func.now())
+    quantity = db.Column(db.Integer, nullable=False, server_default="1", default=1)
 
     cart = db.relationship("Cart", back_populates="items")

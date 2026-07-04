@@ -53,12 +53,17 @@ def add_item(user, listing_id, quantity=1) -> CartItem:
 
 	cart = get_or_create_cart_for_user(user)
 
-	# Idempotent: do not create duplicate cart rows for same listing.
+	# Idempotent: create or update quantity for existing cart item
 	item = CartItem.query.filter_by(cart_id=cart.id, listing_id=listing.id).one_or_none()
 	if item is None:
-		item = CartItem(cart_id=cart.id, listing_id=listing.id)
+		item = CartItem(cart_id=cart.id, listing_id=listing.id, quantity=int(quantity))
 		db.session.add(item)
-		db.session.commit()
+	else:
+		# increment existing quantity but enforce server-side cap
+		new_qty = min(100, item.quantity + int(quantity))
+		item.quantity = new_qty
+
+	db.session.commit()
 
 	return item
 
@@ -82,4 +87,27 @@ def clear_cart(user) -> None:
 		return
 	CartItem.query.filter_by(cart_id=cart.id).delete()
 	db.session.commit()
+
+
+def update_item_quantity(user, listing_id, quantity) -> bool:
+	"""Set the quantity for a cart item. If quantity <= 0, remove the item."""
+	ok, err = validate_integer_range(quantity, "Quantity", min_val=0, max_val=100)
+	if not ok:
+		raise ValueError(err)
+
+	cart = get_cart_for_user(user)
+	if not cart:
+		return False
+	item = CartItem.query.filter_by(cart_id=cart.id, listing_id=listing_id).one_or_none()
+	if not item:
+		return False
+
+	q = int(quantity)
+	if q <= 0:
+		db.session.delete(item)
+	else:
+		item.quantity = q
+
+	db.session.commit()
+	return True
 
