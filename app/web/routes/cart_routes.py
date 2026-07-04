@@ -29,6 +29,7 @@ def view_cart():
 			"listing_id": it.listing_id,
 			"title": getattr(listing, "title", None),
 			"price": float(getattr(listing, "price", None)) if listing is not None else None,
+			"quantity": int(getattr(it, "quantity", 1)),
 			"added_at": it.added_at.isoformat() if getattr(it, "added_at", None) else None,
 		})
 

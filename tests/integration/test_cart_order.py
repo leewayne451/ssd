@@ -70,3 +70,83 @@ def test_illegal_transition_rejected(db_session, auth_client, buyer):
     r = auth_client.post(f"/orders/{oid}/status", json={"new_status": "shipped"})
     assert r.status_code == 400
     assert b"illegal workflow transition" in r.get_data()
+
+
+def test_quantity_persistence_and_update(db_session, client, make_user):
+    from app.models.product_listing import ProductListing
+
+    buyer = make_user("qtybuyer@test.local", role=None)
+    listing = ProductListing(
+        seller_id=999,
+        title="QtyItem",
+        description="desc",
+        category="misc",
+        brand="Acme",
+        price=5.00,
+        condition="new",
+        approval_status="approved",
+        workflow_status="available",
+        is_active=True,
+    )
+    db_session.add(listing)
+    db_session.flush()
+
+    # act as buyer: add quantity 3
+    with client.session_transaction() as sess:
+        sess["user_id"] = buyer.id
+        sess["user_role"] = buyer.role.value if getattr(buyer, 'role', None) else 'buyer'
+
+    r = client.post("/cart/add", json={"listing_id": listing.id, "quantity": 3})
+    assert r.status_code == 201
+
+    # view cart and assert quantity shown
+    r = client.get("/cart/")
+    assert r.status_code == 200
+    data = r.get_json()
+    assert data and data["items"]
+    assert data["items"][0]["quantity"] == 3
+
+    # update quantity to 1
+    r = client.post("/cart/update", json={"listing_id": listing.id, "quantity": 1})
+    assert r.status_code == 200
+    r = client.get("/cart/")
+    assert r.get_json()["items"][0]["quantity"] == 1
+
+
+def test_user_cannot_modify_another_users_order(db_session, client, make_user):
+    from app.models.product_listing import ProductListing
+
+    buyer_a = make_user("a@test.local")
+    buyer_b = make_user("b@test.local")
+
+    listing = ProductListing(
+        seller_id=999,
+        title="OwnTest",
+        description="desc",
+        category="misc",
+        brand="Acme",
+        price=7.50,
+        condition="new",
+        approval_status="approved",
+        workflow_status="available",
+        is_active=True,
+    )
+    db_session.add(listing)
+    db_session.flush()
+
+    # buyer A adds and places order
+    with client.session_transaction() as sess:
+        sess["user_id"] = buyer_a.id
+        sess["user_role"] = buyer_a.role.value if getattr(buyer_a, 'role', None) else 'buyer'
+    r = client.post("/cart/add", json={"listing_id": listing.id})
+    assert r.status_code == 201
+    r = client.post("/orders/place")
+    assert r.status_code == 201
+    oid = r.get_json()["created_order_ids"][0]
+
+    # buyer B attempts to change order status -> should get 403
+    with client.session_transaction() as sess:
+        sess["user_id"] = buyer_b.id
+        sess["user_role"] = buyer_b.role.value if getattr(buyer_b, 'role', None) else 'buyer'
+    r = client.post(f"/orders/{oid}/status", json={"new_status": "awaiting_shipment"})
+    assert r.status_code == 403
