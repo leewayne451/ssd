@@ -19,5 +19,16 @@
     <dd class="col-sm-9">{{ order.created_at.strftime('%Y-%m-%d %H:%M') if order.created_at else '—' }}</dd>
 </dl>
 
+{% if order.workflow_status.value == 'authenticated' and order.payment_status.value == 'pending' %}
+<div class="alert alert-success">
+    This item passed in-house authentication. You can now complete your purchase.
+</div>
+<form method="post" action="{{ url_for('order.checkout', order_id=order.id) }}" class="mb-3">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {# Simulated payment (D1 §9.3.4): no card number / CVV is ever collected. #}
+    <button type="submit" class="btn btn-primary">Complete simulated checkout</button>
+</form>
+{% endif %}
+
 <a class="btn btn-outline-secondary" href="{{ url_for('order.list_orders') }}">Back to orders</a>
 {% endblock %}

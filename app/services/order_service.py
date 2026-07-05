@@ -25,9 +25,16 @@ def place_orders_from_cart(user) -> List[Order]:
 
     created = []
     for item in list(cart.items):
-        listing = ProductListing.query.get(item.listing_id)
+        listing = db.session.get(ProductListing, item.listing_id)
         if listing is None:
             # skip missing listings
+            continue
+
+        # SFR-09: a buyer can commit only to an approved, active listing —
+        # unapproved/deactivated items in a stale cart are skipped.
+        approval = getattr(listing.approval_status, "value", listing.approval_status)
+        if approval != "approved" or not listing.is_active:
+            logger.info("skipping unavailable listing %s at checkout", listing.id)
             continue
 
         order = Order(
