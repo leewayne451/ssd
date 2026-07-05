@@ -1,21 +1,52 @@
 {% extends "base.html" %}
+
+{% block title %}{{ listing.title }} — Château Collective{% endblock %}
+
 {% block content %}
-<h1>{{ listing.title }}</h1>
-<p>Price: {{ listing.price }}</p>
-<div>{{ listing.description }}</div>
-{% if listing.id %}
-	{% set uploads = namespace(items=[]) %}
-	{# Load uploaded files for this listing if any via a helper registered in app globals #}
-	{% if get_listing_uploads is defined %}
-		{% set uploads.items = get_listing_uploads(listing.id) %}
-	{% endif %}
-	{% if uploads.items %}
-		<div class="mt-3">
-			<h5>Images</h5>
-			{% for f in uploads.items %}
-				<img src="{{ url_for('listing.uploaded_file', filename=f.stored_filename) }}" alt="{{ f.original_filename }}" class="img-fluid" style="max-width:200px;">
-			{% endfor %}
-		</div>
-	{% endif %}
+<h1 class="h3 mb-3">{{ listing.title }}</h1>
+
+{% if listing.approval_status != 'approved' %}
+<div class="alert alert-warning">
+    This listing is <strong>{{ listing.approval_status }}</strong> and not publicly visible.
+</div>
+{% endif %}
+
+<dl class="row">
+    <dt class="col-sm-3">Price</dt>
+    <dd class="col-sm-9">${{ '%.2f' | format(listing.price) }}</dd>
+
+    <dt class="col-sm-3">Brand</dt>
+    <dd class="col-sm-9">{{ listing.brand }}</dd>
+
+    <dt class="col-sm-3">Category</dt>
+    <dd class="col-sm-9">{{ listing.category }}</dd>
+
+    <dt class="col-sm-3">Condition</dt>
+    <dd class="col-sm-9">{{ (listing.condition or '').replace('_', ' ') }}</dd>
+
+    <dt class="col-sm-3">Seller</dt>
+    <dd class="col-sm-9">Seller #{{ listing.seller_id }}</dd>
+</dl>
+
+<div class="mb-4">{{ listing.description }}</div>
+
+{% if images %}
+<div class="mb-4">
+    <h2 class="h5">Images</h2>
+    <div class="d-flex flex-wrap gap-2">
+        {% for f in images %}
+        <img src="{{ url_for('listing.media', filename=f.stored_filename) }}"
+             alt="{{ f.original_filename }}" class="img-thumbnail" style="max-width: 200px;">
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{% if session.get('user_id') and listing.approval_status == 'approved' %}
+<form method="post" action="{{ url_for('cart.add_to_cart') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="listing_id" value="{{ listing.id }}">
+    <button type="submit" class="btn btn-primary">Add to cart</button>
+</form>
 {% endif %}
 {% endblock %}

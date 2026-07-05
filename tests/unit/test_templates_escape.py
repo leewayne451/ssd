@@ -9,11 +9,16 @@ def _get_app_with_templates():
 
 def test_index_title_is_escaped():
     app = _get_app_with_templates()
-    listings = [{"id": 1, "title": "<script>alert(1)</script>", "price": "9.99"}]
+    listings = [{
+        "id": 1, "title": "<script>alert(1)</script>", "price": 9.99,
+        "brand": "B", "category": "c", "condition": "pre_owned",
+    }]
+    filters = {"q": "", "category": "", "brand": "", "condition": "",
+               "min_price": None, "max_price": None}
 
     with app.test_request_context():
         tpl = app.jinja_env.get_template("listings/index.html")
-        out = tpl.render(listings=listings)
+        out = tpl.render(listings=listings, filters=filters, conditions=["new", "pre_owned"])
 
     assert "<script>alert(1)</script>" not in out
     assert "&lt;script&gt;alert(1)&lt;/script&gt;" in out
@@ -29,7 +34,7 @@ def test_form_fields_are_escaped(app):
 
     with app.test_request_context():
         tpl = app.jinja_env.get_template("listings/form.html")
-        out = tpl.render(listing=listing)
+        out = tpl.render(listing=listing, conditions=["new", "pre_owned"])
 
     # Title should be escaped inside the input value
     assert "<img src=x onerror=alert(1)>" not in out
