@@ -8,7 +8,12 @@ auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
 def register():
     form = RegistrationForm()
     if form.validate_on_submit():
-        user, error = register_user(form.email.data, form.password.data)
+        user, error = register_user(
+            form.email.data,
+            form.password.data,
+            name=form.name.data,
+            phone=form.phone.data,
+        )
         if user:
             flash('Registration successful! Please log in.', 'success')
             return redirect(url_for('auth.login'))
