@@ -2,7 +2,7 @@ import os
 from flask import Flask, request, flash, redirect, url_for, session
 
 
-from .extensions import db, migrate, login_manager
+from .extensions import db, migrate
 from .config import config_map
 
 
@@ -32,8 +32,7 @@ def create_app(config_name=None):
 
     db.init_app(app)
     migrate.init_app(app, db)
-    login_manager.init_app(app)
-    
+
     from . import models
 
     from .logging_config import configure_logging
@@ -47,12 +46,6 @@ def create_app(config_name=None):
 
     from .security.output_encoding import nl2br
     app.jinja_env.filters["nl2br"] = nl2br
-    
-    # Set up Flask-Login user loader
-    @login_manager.user_loader
-    def load_user(user_id):
-        from app.models.user import User
-        return db.session.get(User, int(user_id))
 
     from .web.routes import register_routes
     register_routes(app)

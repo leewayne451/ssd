@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block title %}Order #{{ order.id }} — Château Collective{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-4">Order #{{ order.id }}</h1>
+
+<dl class="row">
+    <dt class="col-sm-3">Committed price</dt>
+    <dd class="col-sm-9">${{ '%.2f' | format(order.committed_price) }}</dd>
+
+    <dt class="col-sm-3">Workflow status</dt>
+    <dd class="col-sm-9"><span class="badge text-bg-secondary">{{ order.workflow_status.value }}</span></dd>
+
+    <dt class="col-sm-3">Payment status</dt>
+    <dd class="col-sm-9"><span class="badge text-bg-light">{{ order.payment_status.value }}</span></dd>
+
+    <dt class="col-sm-3">Placed</dt>
+    <dd class="col-sm-9">{{ order.created_at.strftime('%Y-%m-%d %H:%M') if order.created_at else '—' }}</dd>
+</dl>
+
+<a class="btn btn-outline-secondary" href="{{ url_for('order.list_orders') }}">Back to orders</a>
+{% endblock %}

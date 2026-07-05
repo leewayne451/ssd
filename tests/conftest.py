@@ -1,4 +1,4 @@
-"""
+﻿"""
 Chateau Collective -- Pytest fixtures
 
 Provides:
@@ -141,8 +141,37 @@ def admin_user(make_user):
 
 @pytest.fixture()
 def buyer_user(buyer):
-    """Alias for buyer fixture — for M4 consistency."""
+    """Alias for buyer fixture ??for M4 consistency."""
     return buyer
+
+
+@pytest.fixture()
+def login_as(client, db_session):
+    """
+    Canonical HTTP login helper (use this for integration tests, not session
+    hacks): registers the user through the real service, then logs in through
+    the real /auth/login route so the test exercises the actual auth path.
+
+        user = login_as("buyer@x.test", role=UserRole.SELLER)
+    """
+    from app.services.auth_service import register_user
+
+    def _login(email="httpuser@example.com", password="MySecureP@ssw0rd!2026",
+               role=UserRole.BUYER):
+        user, err = register_user(email, password)
+        assert user is not None, f"registration failed: {err}"
+        if role != UserRole.BUYER:
+            user.role = role
+            _db.session.commit()
+        resp = client.post(
+            "/auth/login",
+            data={"email": email, "password": password},
+            follow_redirects=True,
+        )
+        assert resp.status_code == 200
+        return user
+
+    return _login
 
 
 @pytest.fixture()
