@@ -1,5 +1,7 @@
 # Audit follow-ups by milestone (M1–M7)
 
+> **STATUS 5 Jul — DONE on branch `harden/d1-conformance`.** Every code/test item in this doc (M1–M6 + the Flask-Login removal + R1 rate-limiting/bot-filtering) is implemented and merged into the branch; **418 tests pass, 0 failures.** The auth-mechanism decision (remove Flask-Login) shipped. What remains is *not* code: live-VM evidence capture (load/perf, browser matrix, TLS/SSH proofs) and the M8–M12 descope — both tracked in [traceability_matrix.md](traceability_matrix.md) §8. Per-item test references are in that matrix; this doc is kept as the original problem→fix narrative.
+
 **Source:** AI Milestone Audit run on `main`, 4 Jul 2026 (scope `full`, advisory).
 **Deadline:** code freeze **EOD Tue 7 Jul**. Criticals should land by **Sun 6 Jul** so Monday is buffer + test day.
 **How to read this:** each item = the problem the audit found → why it matters → what to do → the test that proves it. Finding IDs (e.g. `CTRL-001`) reference the audit report so you can read the full evidence yourself (Actions → AI Milestone Audit → latest `main` run → job summary or artifact).

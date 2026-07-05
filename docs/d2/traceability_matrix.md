@@ -1,8 +1,10 @@
 # D1 → Implementation → Test Traceability Matrix
 
 **Source:** `doc/ICT2116_P2_team31_Deliverable_One.pdf` (all requirement families, incl. Appendices A-1…A-4 and §9.3 design decisions).
-**Generated:** 4 Jul 2026, verified against code + test inventory on `main` (+ working tree). Companion docs: [milestone_audit_followups.md](milestone_audit_followups.md) (fix tasks), [owasp_mapping_table.md](owasp_mapping_table.md) (OWASP view of the same evidence).
-**How to verify:** `pytest -q` runs every test cited here; test refs are `file::test_name`.
+**Generated:** 4 Jul 2026. **Updated 5 Jul 2026** after the `harden/d1-conformance` iteration landed all pre-freeze fixes (M1–M6 + R1). Companion docs: [milestone_audit_followups.md](milestone_audit_followups.md) (fix tasks), [owasp_mapping_table.md](owasp_mapping_table.md) (OWASP view of the same evidence).
+**How to verify:** `pytest -q` runs every test cited here; test refs are `file::test_name`. **Suite status: 418 passing** (309 application + 109 AI-review tooling), 0 failures.
+
+> **Iteration note (harden/d1-conformance):** the T-01…T-41 backlog in §8 and the R1 edge-hardening are **implemented** — every ⏳-code item below is now ✅. The only remaining non-✅ rows are (a) M7 evidence captures that require the live VM (load numbers, browser screenshots, TLS/SSH proofs — the 🏗/⏳ rows), and (b) the M8–M12 features deliberately descoped to the residual-risks section (⏸).
 
 **Status legend**
 
@@ -21,21 +23,21 @@
 
 | ID | Requirement | Status | Implementation evidence | Test evidence / gap |
 |---|---|---|---|---|
-| FR-01 | Registration: name, email, phone, password | 🔧 M1.1 | `app/web/forms/auth_forms.py`, `app/services/auth_service.py::register_user` (email+password only today) | `tests/unit/test_auth.py::test_register_success`, `::test_register_duplicate_email`; **missing:** T-01, T-02 |
+| FR-01 | Registration: name, email, phone, password | ✅ | `app/web/forms/auth_forms.py` (name+phone), `auth_service.py::register_user` (creates Profile) | `tests/integration/test_auth_sessions.py::test_register_captures_name_phone_and_creates_profile` (T-01), `::test_register_rejects_invalid_name_or_phone` (T-02) |
 | FR-02 | Login / logout | ✅ | `auth_service.py::login_user/logout_user`, `app/web/routes/auth_routes.py` | `test_auth.py::test_login_success`, `::test_login_wrong_password`, `::test_logout_clears_session` |
 | FR-03 | Profile management (own profile) | ✅ | `app/web/routes/profile_routes.py`, `app/services/profile_service.py`, `app/security/ownership.py` | `tests/integration/test_profile_idor.py::TestProfileIDOR` (own-edit + cross-user blocked) |
 | FR-04 | Seller application | ⏸ M10 | `app/models/seller_application.py` (model only; routes/service stubs) | — (residual risk) |
-| FR-05 | Public browsing + product detail page | 🔧 M3.1/M3.2 | `app/web/routes/listing_routes.py`, `app/services/listing_service.py` (index works; detail broken; approval filter missing) | **missing:** T-14, T-15 |
-| FR-06 | Search & filter (category/brand/condition/price) | 🔧 M3.2 | not implemented yet | **missing:** T-16, T-17 |
-| FR-07 | Listing create/edit + image upload (own only) | ✅ /🔧 M3.3 | `listing_routes.py`, `app/services/upload_service.py`, `app/security/file_validation.py` | `tests/unit/test_listing_routes.py::test_create_requires_login/-seller`, `::test_create_listing_success`, `::test_create_listing_with_image`, `::test_edit_requires_owner`, `::test_edit_owner_success` |
-| FR-08 | Cart add/view/remove | 🔧 swap task ② | `app/services/cart_service.py` (complete), `cart_routes.py` (blocked by Flask-Login; templates missing) | `tests/unit/test_cart_service.py` (19 tests, service level); **missing:** T-22 (HTTP level) |
-| FR-09 | Purchase commitment | ✅ (service) | `app/services/order_service.py::place_orders_from_cart` | `tests/unit/test_order_service.py` (7 tests incl. `::test_place_orders_server_price_enforcement`); **missing:** T-31 |
-| FR-10 | Shipment status tracking by seller | 🔧 M4.1/M4.2 (workflow half); ⏸ M9 (Shipment entity) | `app/services/workflow_service.py` (awaiting_shipment/shipped edges) | `tests/unit/test_workflow_service.py::test_is_actor_allowed_seller_restricted`; **missing:** T-25 |
-| FR-11 | Simulated checkout after workflow checks | 🔧 M4.3 | `PaymentStatus` enum only — checkout service not built | **missing:** T-26, T-27, T-28 |
-| FR-12 | Admin dashboard | 🔧 M5.1 | `app/web/routes/admin_routes.py` (index + logs only) | `tests/test_admin_logs.py`, `tests/integration/test_admin_2fa_routes.py` (access control ✅ for existing pages) |
-| FR-13 | User suspension by admin | 🔧 M5.1 + M1.4 + M2.2 | `AccountStatus.SUSPENDED` modelled; no action/enforcement yet | **missing:** T-07, T-10, T-32, T-33 |
-| FR-14 | Listing monitoring (suspicious/reported) | 🔧 M5.1 + residual R2 | `ProductListing.approval_status` modelled; no admin action; no report mechanism | **missing:** T-34 |
-| FR-15 | Admin order/workflow status update | 🔧 M4.1 + M5.1/M5.2 | `workflow_service.py` admin edges; admin UI missing | `test_workflow_service.py::test_is_actor_allowed_admin_always_allowed`, `::test_transition_order_authentication_path`; **missing:** T-35 |
+| FR-05 | Public browsing + product detail page | ✅ | `app/web/routes/listing_routes.py` (detail rebuilt), `listing_service.py::get_public_listings` (approval-filtered) | `tests/integration/test_listing_discovery.py::test_public_index_hides_pending_and_rejected` (T-14), `::test_detail_hidden_for_unapproved_except_owner_and_admin` (T-15) |
+| FR-06 | Search & filter (category/brand/condition/price) | ✅ | `listing_routes.py::index`, `listing_service.py::get_public_listings` (ORM-bound filters) | `test_listing_discovery.py::test_search_filters_by_category_brand_condition_price` (T-16), `::test_search_hostile_input_treated_as_data` (T-17) |
+| FR-07 | Listing create/edit + image upload (own only) | ✅ | `listing_routes.py`, `app/services/upload_service.py`, `app/security/file_validation.py` | `tests/unit/test_listing_routes.py` (6 tests); upload hardening `test_listing_discovery.py` T-18..T-21 |
+| FR-08 | Cart add/view/remove | ✅ | `app/services/cart_service.py`, `cart_routes.py` (own rbac auth; templates added) | `tests/unit/test_cart_service.py` (19) + `tests/integration/test_cart_order_http.py::test_login_then_load_cart_page` (T-22) |
+| FR-09 | Purchase commitment | ✅ | `app/services/order_service.py::place_orders_from_cart` (approved-only, SFR-09) | `tests/unit/test_order_service.py` (7) + `test_workflow_d1.py::test_commit_skips_unapproved_listing` (T-31) |
+| FR-10 | Shipment status tracking by seller | ✅ (workflow); ⏸ M9 (Shipment tracking entity) | `workflow_service.py` (awaiting_shipment/shipped edges + ownership) | `test_workflow_d1.py::test_seller_cannot_transition_other_sellers_order` (T-25); tracking-reference detail deferred to M9 |
+| FR-11 | Simulated checkout after workflow checks | ✅ | `app/services/checkout_service.py`, `order_routes.py::checkout` (server-controlled payment) | `test_workflow_d1.py::test_checkout_happy_path` (T-26), `::test_client_supplied_payment_status_ignored` (T-27), `::test_checkout_blocked_before_authentication` (T-28) |
+| FR-12 | Admin dashboard | ✅ | `admin_routes.py` (users/listings/orders/logs, all 2FA-gated) | `tests/integration/test_admin_operations.py`, `test_admin_2fa_routes.py` |
+| FR-13 | User suspension by admin | ✅ | `admin_service.py::suspend_user` + login/session enforcement (`auth_service`, `rbac`) | `test_admin_operations.py::test_admin_suspend_user_writes_audit_row` (T-32), `test_auth_sessions.py::test_suspended_user_cannot_login` (T-07), `test_rbac_hardening.py::test_suspension_kills_active_session_on_next_request` (T-10) |
+| FR-14 | Listing monitoring (suspicious/reported) | ✅ | `admin_service.py` approve/reject + `report_listing`; `product_listings.reported` column + migration | `test_admin_operations.py::test_admin_approve_and_reject_listing_with_audit` (T-34), `::test_buyer_can_report_listing` |
+| FR-15 | Admin order/workflow status update | ✅ | `admin_service.py::update_order_workflow` via audited state machine | `test_admin_operations.py::test_admin_workflow_update_writes_audit` (T-35/T-37) |
 | FR-16 | Purchase-based reviews | ⏸ M8 | `app/models/review.py` only | — (residual risk; top stretch — XSS-defence evidence) |
 | FR-17 | Dispute resolution | ⏸ M11 | `app/models/dispute.py` only | — (residual risk) |
 
@@ -153,7 +155,7 @@
 | SDR-12 | VM: no exposed source/.git/.env/db/debug; key-based SSH | 🏗 M7 | E-06 curl + SSH config evidence |
 | SDR-13 | DB/uploads/backups outside web root | 🏗 M7 | D1 G-3.1 layout; E-06 |
 | SDR-14 | Only required public services exposed | 🏗 M7 | AWS security group + nginx; E-06 |
-| SDR-15 | Traffic filtering config reviewed/tested | 🏗 R1 | E-04 |
+| SDR-15 | Traffic filtering config reviewed/tested | ✅ 🏗 | nginx `limit_req`/`limit_conn`/bad-UA map in both configs; [evidence/rate-limiting.md](evidence/rate-limiting.md); on-VM `nginx -t` + throttle demo = E-04 |
 | SDR-16 | Secure code review before release | ✅ | PR-review working agreement + AI review workflows (`.github/workflows/ai-contextual-pr-review.yml`); evidence = PR history |
 | SDR-17 | Dependency review | ✅ | `pip-audit` in CI, `image-scan.yml`; add `zxcvbn` to inventory (residual R7) |
 | SDR-18 | Browser compatibility testing | ⏳ residual R4 | E-02 |
@@ -163,87 +165,63 @@
 
 | Decision | Status | Trace |
 |---|---|---|
-| 9.3.1 Never trust frontend price/status/role values | 🔧 M4 | price ✅ `test_place_orders_server_price_enforcement`; payment/status tampering: T-27, T-30 |
-| 9.3.2 Deny-by-default (login+role+ownership+state) | ✅ /🔧 | `test_rbac.py`, `test_ownership.py`; state checks complete with M4 |
-| 9.3.3 Dedicated `/admin/*` routes, separated logic | ✅ pattern | `admin_routes.py` blueprint; new admin actions (M5.1) must stay in it |
-| 9.3.4 Simulated payment, server-controlled transitions | 🔧 M4.3 | T-26, T-27, T-28 |
-| 9.3.5 Authentication workflow (H-3 state machine) | 🔧 M4.1 + M5.2 | `test_workflow_service.py` (14 tests exist; **map itself contradicts H-3** — fix per CTRL-001 then T-23/T-24 lock it) |
-| 9.3.6 Security event alerting | 🟡 R5 | NFSR-20 framing |
+| 9.3.1 Never trust frontend price/status/role values | ✅ | price `test_place_orders_server_price_enforcement`; `test_workflow_d1.py::test_client_supplied_payment_status_ignored` (T-27), `::test_transition_route_rejects_invalid_status_strings` (T-30); RBAC authorises against DB role not session |
+| 9.3.2 Deny-by-default (login+role+ownership+state) | ✅ | `test_rbac.py`, `test_rbac_hardening.py`, `test_ownership.py`, `test_order_ownership.py`; workflow state checks in `test_workflow_d1.py` |
+| 9.3.3 Dedicated `/admin/*` routes, separated logic | ✅ | `admin_routes.py` blueprint — all actions role+2FA-gated |
+| 9.3.4 Simulated payment, server-controlled transitions | ✅ | `checkout_service.py`; T-26, T-27, T-28 |
+| 9.3.5 Authentication workflow (H-3 state machine) | ✅ | map now matches H-3 exactly — `test_workflow_d1.py::test_transition_matrix_exactly_matches_d1_h3` (T-23, 64 combos), `::test_shipped_to_sold_direct_is_rejected` (T-24); admin review `test_admin_operations.py::test_admin_authentication_review_flips_state_and_records` (T-35) |
+| 9.3.6 Security event alerting | 🟡 R5 | `security_event_service.py` + admin log viewer = alert surface; NFSR-20 report framing |
 | 9.3.7 Security headers (CSP/XFO/nosniff/Referrer) | ✅ | FSR-20 tests |
 
-## 8. Missing-test backlog (consolidated)
+## 8. Test backlog — DONE (implemented in harden/d1-conformance, 5 Jul)
 
-Every gap above, as one implementable list. IDs are referenced from the tables. **Bold = blocks an OWASP-mapping row.**
+All T-01…T-41 are implemented and passing. Each line shows the delivered test.
+**Bold = unblocked an OWASP-mapping row.**
 
-**M1 — BX**
-- T-01 `test_register_captures_name_phone_and_creates_profile` (FR-01)
-- T-02 `test_register_rejects_invalid_phone_and_overlong_name` (SFR-01)
-- **T-03** `test_password_stored_as_hash_not_plaintext` (FSR-03; OWASP row 4)
-- **T-04** `test_session_expires_after_inactivity` (+ activity refresh keeps alive) (FSR-04; OWASP row 13)
-- **T-05** `test_session_marker_changes_after_login` (fixation; OWASP row 14)
-- **T-06** `test_auth_events_write_audit_rows` (register/login-fail/login/logout; FSR-13; OWASP row 17)
-- T-07 `test_suspended_user_cannot_login_and_event_recorded` (FR-13)
-- T-08 `test_session_not_reusable_after_logout` (SDR-06)
+**M1 (auth) — `tests/integration/test_auth_sessions.py`, `tests/unit/test_auth.py`**
+- ✅ T-01 `test_register_captures_name_phone_and_creates_profile` · ✅ T-02 `test_register_rejects_invalid_name_or_phone`
+- ✅ **T-03** `test_password_stored_as_hash_not_plaintext` (row 4) · ✅ **T-04** `test_session_expires_after_inactivity` (+`_activity_within_limit_keeps_session_alive`) (row 13)
+- ✅ **T-05** `test_login_discards_pre_login_session_content` (row 14) · ✅ **T-06** `test_auth_events_write_audit_rows` (row 17)
+- ✅ T-07 `test_suspended_user_cannot_login` · ✅ T-08 `test_session_not_reusable_after_logout`
 
-**M2 — Bryan**
-- T-09 `test_stale_session_for_deleted_user_is_401_not_500`
-- T-10 `test_suspension_kills_active_session_on_next_request` (CONFLICT-002)
-- T-11 `test_role_change_takes_effect_without_relogin`
-- T-12 unit tests for `require_order_seller` / `require_order_buyer` helpers
-- T-13 `test_dev_login_route_returns_403_in_production_config` (DOC-002)
+**M2 (rbac/ownership) — `tests/unit/security/test_rbac_hardening.py`, `test_order_ownership.py`**
+- ✅ T-09 `test_stale_session_for_deleted_user_is_401_not_500` · ✅ T-10 `test_suspension_kills_active_session_on_next_request`
+- ✅ T-11 `test_role_change_takes_effect_without_relogin` · ✅ T-12 (6 helper tests in `test_order_ownership.py`) · ✅ T-13 `test_dev_login_route_disabled_outside_debug_and_testing`
 
-**M3 — Tason**
-- T-14 `test_public_index_hides_pending_and_rejected_listings` (TRACE-003)
-- T-15 `test_detail_404_for_unapproved_listing` (FR-05/SFR-05)
-- T-16 `test_search_filters_by_category_brand_condition_price` (FR-06)
-- T-17 `test_search_hostile_input_treated_as_data` (SFR-06/SDR-03)
-- T-18 `test_upload_rejects_spoofed_magic_bytes_via_route` (SDR-04; OWASP row 20)
-- T-19 `test_upload_rejects_path_traversal_filename`
-- **T-20** `test_stored_filename_is_randomised_not_original` (OWASP row 21)
-- T-21 `test_image_serving_rejects_traversal_paths`
+**M3 (discovery/upload) — `tests/integration/test_listing_discovery.py`**
+- ✅ T-14 `test_public_index_hides_pending_and_rejected` · ✅ T-15 `test_detail_hidden_for_unapproved_except_owner_and_admin`
+- ✅ T-16 `test_search_filters_by_category_brand_condition_price` · ✅ T-17 `test_search_hostile_input_treated_as_data`
+- ✅ T-18 `test_spoofed_magic_bytes_rejected_via_route` (row 20) · ✅ T-19 `test_traversal_filename_neutralised…`
+- ✅ **T-20** `…_and_stored_name_randomised` (row 21) · ✅ T-21 `test_media_route_rejects_traversal_and_unknown_names`
 
-**M4 — Chun**
-- T-22 `test_login_then_load_cart_page` (swap proving test — FR-08, FSR-08)
-- **T-23** `test_transition_matrix_exactly_matches_d1_h3` (CTRL-001; OWASP row 9 upgrade)
-- T-24 `test_shipped_to_sold_direct_is_rejected`
-- T-25 `test_seller_cannot_transition_other_sellers_order` (CTRL-002/SFR-10)
-- T-26 `test_checkout_happy_path_pending_to_paid_no_card_fields` (FR-11, FSR-17)
-- T-27 `test_client_supplied_payment_status_ignored` (9.3.4)
-- T-28 `test_checkout_blocked_before_authenticated_state` (SFR-11)
-- T-29 `test_buyer_cannot_view_other_buyers_order_over_http` (FSR-08)
-- T-30 `test_transition_rejects_invalid_status_strings` (SURFACE-001)
-- T-31 `test_commit_to_unavailable_item_rejected` (SFR-09)
+**M4 (workflow/checkout) — `tests/unit/test_workflow_d1.py`, `tests/integration/test_cart_order_http.py`**
+- ✅ T-22 `test_login_then_load_cart_page` · ✅ **T-23** `test_transition_matrix_exactly_matches_d1_h3` (64 combos; row 9) · ✅ T-24 `test_shipped_to_sold_direct_is_rejected`
+- ✅ T-25 `test_seller_cannot_transition_other_sellers_order` · ✅ T-26 `test_checkout_happy_path` · ✅ T-27 `test_client_supplied_payment_status_ignored`
+- ✅ T-28 `test_checkout_blocked_before_authentication` · ✅ T-29 `test_buyer_cannot_view_other_buyers_order_over_http` · ✅ T-30 `test_transition_route_rejects_invalid_status_strings` · ✅ T-31 `test_commit_skips_unapproved_listing`
 
-**M5 — Wayne**
-- T-32 `test_admin_suspend_user_writes_audit_row` + non-admin 403 (T-33) (FR-13/SFR-13)
-- T-34 `test_admin_approve_reject_listing_with_audit_row` (FR-14/SFR-14)
-- T-35 `test_admin_authentication_review_flips_state_and_records` (THREAT-002/9.3.5)
-- T-36 `test_seller_cannot_update_authentication_status` (SFR-15)
-- **T-37** `test_workflow_transition_writes_audit_log_row` (CTRL-003; OWASP row 22)
+**M5 (admin) — `tests/integration/test_admin_operations.py`**
+- ✅ T-32 `test_admin_suspend_user_writes_audit_row` · ✅ T-33 `test_non_admin_cannot_suspend` · ✅ T-34 `test_admin_approve_and_reject_listing_with_audit`
+- ✅ T-35 `test_admin_authentication_review_flips_state_and_records` · ✅ T-36 `test_seller_cannot_authenticate_via_admin_route` · ✅ **T-37** `test_admin_workflow_update_writes_audit` / `test_workflow_d1.py::test_transition_writes_audit_log_row` (row 22)
 
-**M6 — JR**
-- T-39 `test_401_page_renders_with_login_link` (after template created)
-- **T-40** `test_no_raw_sql_strings_in_app_code` (SDR-03; OWASP row 6)
-- T-41 escaping tests for new cart/order/listing-detail templates as they land
+**M6 (cross-cuts) — `tests/security/test_sql_and_pages.py`, `tests/integration/test_error_pages.py`**
+- ✅ T-39 `test_401_page_renders_with_login_link` · ✅ **T-40** `test_no_raw_sql_strings_in_app_code` (row 6) · ✅ T-41 `test_new_templates_render_without_error` (+ `test_no_jinja_safe_filter_on_user_data`)
 
-**M7 — Yi Phang (evidence tasks, not pytest)**
-- E-01 load-test pass: page/search/transaction timings, 50 concurrent, 1k listings (NFR-05…10, NFSR-10/13–16)
-- E-02 browser matrix pass + screenshots (NFR-12/SDR-18)
-- E-03 form data-minimisation review note (NFR-13/FSR-16/NFSR-03)
-- E-04 nginx `limit_req` config + throttling demonstration (FSR-05/06/23/24, NFSR-12, SDR-15)
-- E-05 TLS evidence: SSL Labs / `openssl s_client` output (FSR-18/NFSR-04)
-- E-06 VM exposure checks: `.git`/`.env`/db/uploads/backups not web-reachable; SSH key-only (SDR-12–14, NFSR-05, FSR-19)
-- (enabler) `login_as` fixture in `tests/conftest.py` so T-22/T-25/T-29… share one canonical login path
+**R1 (edge) — config + evidence doc:** ✅ nginx `limit_req`/`limit_conn`/bad-UA map in both configs; verification steps in [evidence/rate-limiting.md](evidence/rate-limiting.md) (E-04).
 
-## 9. Coverage snapshot
+### Still open — require the live VM or descoped (unchanged)
+- **M7 evidence captures** (need the deployed VM, not code): E-01 load/perf numbers (NFR-05…10, NFSR-13–16), E-02 browser matrix (NFR-12/SDR-18), E-03 data-min review note, E-05 TLS `openssl`/SSL-Labs output (FSR-18), E-06 VM exposure + SSH checks (SDR-12–14). Config for all of these already exists; only the screenshots/transcripts remain.
+- **M8–M12 descope** (residual-risks section): FR-04 seller application, FR-16 reviews, FR-17 disputes, NFR-03/FSR-25/26/SDR-10 backup-restore, FR-10 shipment-tracking *entity*.
+- **NFSR-20** security-event alerting: implemented as SecurityEvent rows + admin viewer; only the report framing sentence is outstanding.
 
-| Family | Total | ✅ done+tested | 🟡 test gap | 🔧 in progress | 🏗/⏳ evidence | ⏸ descoped |
-|---|---|---|---|---|---|---|
-| FR | 17 | 4 | — | 10 | — | 3 |
-| NFR | 16 | 1 | 4 | 2 | 8 | 1 |
-| SFR | 17 | 5 | 2 | 7 | — | 3 |
-| FSR | 26 | 7 | 4 | 7 | 6 | 2 |
-| NFSR | 21 | 3 | 4 | 4 | 9 | 1 |
-| SDR | 19 | 6 | 3 | 1 | 8 | 1 |
+## 9. Coverage snapshot (post-iteration)
 
-Current test suite: **~150 tests** across `tests/` (app: unit + integration + security; plus `tests/ai_review/` covering the AI tooling and `test_workflow_policies.py` guarding CI workflow policy). Missing-test backlog: **41 tests + 6 evidence tasks**, all assigned above.
+| Family | Total | ✅ done+tested | 🟡/🔧 remaining code | 🏗/⏳ VM evidence | ⏸ descoped |
+|---|---|---|---|---|---|
+| FR | 17 | 14 | — | — | 3 (FR-04/16/17; FR-10 tracking partial) |
+| NFR | 16 | 3 | 1 (NFR-15 retention) | 9 | 1 (NFR-03) |
+| SFR | 17 | 13 | — | — | 3 (SFR-04/16/17; SFR-10 tracking partial) |
+| FSR | 26 | 16 | 1 (FSR-16 review) | 6 | 2 (FSR-25/26) |
+| NFSR | 21 | 8 | 1 (NFSR-20 framing) | 9 | 1 (NFSR-11) |
+| SDR | 19 | 11 | — | 6 | 1 (SDR-10) |
+
+Current test suite: **418 tests** (309 application across unit/integration/security + 109 `tests/ai_review/` + workflow-policy guard), **0 failures**. The T-01…T-41 backlog and R1 edge-hardening are complete; what remains is VM-only evidence capture and the M8–M12 descope.
