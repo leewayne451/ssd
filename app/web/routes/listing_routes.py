@@ -18,7 +18,8 @@ from flask import (
 from app.models.enums import ListingCondition, UserRole
 from app.models.uploaded_file import UploadedFile
 from app.security.ownership import assert_owner
-from app.security.rbac import role_required
+from app.security.rbac import login_required, role_required
+from app.services import admin_service
 from app.services.auth_service import get_current_user
 from app.services.listing_service import (
 	create_listing,
@@ -96,6 +97,17 @@ def detail(listing_id):
 
 	images = UploadedFile.query.filter_by(listing_id=listing_id).all()
 	return render_template("listings/detail.html", listing=listing, images=images)
+
+
+@listing_bp.route("/listings/<int:listing_id>/report", methods=["POST"])
+@login_required
+def report(listing_id):
+	"""Buyer flags a listing as suspicious for admin review (FR-14)."""
+	reason = request.form.get("reason", "")
+	if admin_service.report_listing(get_current_user(), listing_id, reason) is None:
+		abort(404)
+	flash("Thank you — this listing has been reported for review.", "info")
+	return redirect(url_for("listing.detail", listing_id=listing_id))
 
 
 @listing_bp.route("/listings/media/<filename>")

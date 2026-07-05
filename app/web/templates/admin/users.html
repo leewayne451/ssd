@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Admin · Users — Château Collective{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-4">User management</h1>
+
+<table class="table align-middle">
+    <thead>
+        <tr>
+            <th scope="col">ID</th>
+            <th scope="col">Email</th>
+            <th scope="col">Role</th>
+            <th scope="col">Status</th>
+            <th scope="col">Action</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for u in users %}
+        <tr>
+            <td>{{ u.id }}</td>
+            <td>{{ u.email }}</td>
+            <td>{{ u.role.value }}</td>
+            <td>
+                {% if u.status.value == 'suspended' %}
+                <span class="badge text-bg-danger">suspended</span>
+                {% else %}
+                <span class="badge text-bg-success">active</span>
+                {% endif %}
+            </td>
+            <td>
+                {% if u.status.value == 'suspended' %}
+                <form method="post" action="{{ url_for('admin.unsuspend_user', user_id=u.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-sm btn-outline-success">Reactivate</button>
+                </form>
+                {% else %}
+                <form method="post" action="{{ url_for('admin.suspend_user', user_id=u.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-sm btn-outline-danger">Suspend</button>
+                </form>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

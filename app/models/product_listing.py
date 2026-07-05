@@ -16,5 +16,8 @@ class ProductListing(db.Model):
     approval_status = db.Column(db.Enum(ApprovalStatus), nullable=False, default=ApprovalStatus.PENDING)
     workflow_status = db.Column(db.Enum(WorkflowStatus), nullable=False, default=WorkflowStatus.AVAILABLE)
     is_active = db.Column(db.Boolean, nullable=False, default=True)
+    # FR-14: buyers can flag a listing as suspicious for admin review.
+    reported = db.Column(db.Boolean, nullable=False, default=False)
+    report_reason = db.Column(db.Text)
     created_at = db.Column(db.DateTime, nullable=False, server_default=db.func.now())
     updated_at = db.Column(db.DateTime, nullable=False, server_default=db.func.now(), onupdate=db.func.now())

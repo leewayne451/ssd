@@ -7,10 +7,11 @@
     verification for this session.
 </p>
 
-<p>
-    <a href="{{ url_for('admin.logs') }}" class="btn btn-outline-secondary">
-        View Audit &amp; Security Logs
-    </a>
-</p>
+<div class="d-flex flex-wrap gap-2">
+    <a href="{{ url_for('admin.users') }}" class="btn btn-outline-secondary">User management</a>
+    <a href="{{ url_for('admin.listings') }}" class="btn btn-outline-secondary">Listing moderation</a>
+    <a href="{{ url_for('admin.orders') }}" class="btn btn-outline-secondary">Orders &amp; authentication</a>
+    <a href="{{ url_for('admin.logs') }}" class="btn btn-outline-secondary">Audit &amp; security logs</a>
+</div>
 
 {% endblock %}

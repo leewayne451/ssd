@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Admin · Orders — Château Collective{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-4">Order &amp; authentication management</h1>
+
+<h2 class="h5">Awaiting in-house authentication</h2>
+<table class="table align-middle mb-4">
+    <thead><tr><th>Order</th><th>Committed price</th><th>Authentication outcome</th></tr></thead>
+    <tbody>
+        {% for o in awaiting %}
+        <tr>
+            <td>#{{ o.id }}</td>
+            <td>${{ '%.2f' | format(o.committed_price) }}</td>
+            <td>
+                <form method="post" action="{{ url_for('admin.authenticate_order', order_id=o.id) }}" class="d-flex gap-2 align-items-center">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <select name="outcome" class="form-select form-select-sm" style="width: auto">
+                        <option value="authentic">Authentic</option>
+                        <option value="counterfeit">Counterfeit</option>
+                    </select>
+                    <input type="text" name="notes" class="form-control form-control-sm" placeholder="Notes" maxlength="2000">
+                    <button type="submit" class="btn btn-sm btn-primary">Record</button>
+                </form>
+            </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="3" class="text-muted">No orders awaiting authentication.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<h2 class="h5">Recent orders</h2>
+<table class="table align-middle">
+    <thead><tr><th>Order</th><th>Workflow</th><th>Payment</th></tr></thead>
+    <tbody>
+        {% for o in recent %}
+        <tr>
+            <td>#{{ o.id }}</td>
+            <td>{{ o.workflow_status.value }}</td>
+            <td>{{ o.payment_status.value }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Admin · Listings — Château Collective{% endblock %}
+
+{% macro moderation_row(l) %}
+<tr>
+    <td>{{ l.id }}</td>
+    <td>{{ l.title }}</td>
+    <td>{{ l.brand }} · {{ l.category }}</td>
+    <td>{{ l.approval_status.value }}</td>
+    <td class="d-flex gap-2">
+        <form method="post" action="{{ url_for('admin.approve_listing', listing_id=l.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-sm btn-outline-success">Approve</button>
+        </form>
+        <form method="post" action="{{ url_for('admin.reject_listing', listing_id=l.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-sm btn-outline-danger">Reject</button>
+        </form>
+    </td>
+</tr>
+{% endmacro %}
+
+{% block content %}
+<h1 class="h3 mb-4">Listing moderation</h1>
+
+<h2 class="h5">Pending approval</h2>
+<table class="table align-middle mb-4">
+    <thead><tr><th>ID</th><th>Title</th><th>Details</th><th>Status</th><th>Action</th></tr></thead>
+    <tbody>
+        {% for l in pending %}{{ moderation_row(l) }}{% else %}
+        <tr><td colspan="5" class="text-muted">Nothing pending.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<h2 class="h5">Reported listings</h2>
+<table class="table align-middle">
+    <thead><tr><th>ID</th><th>Title</th><th>Details</th><th>Status</th><th>Action</th></tr></thead>
+    <tbody>
+        {% for l in reported %}{{ moderation_row(l) }}{% else %}
+        <tr><td colspan="5" class="text-muted">No reports.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
