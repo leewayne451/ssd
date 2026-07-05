@@ -1,27 +1,31 @@
 import pytest
 
 from app.models.product_listing import ProductListing
+from app.models.enums import UserRole
 
 
-def test_create_requires_login(client):
+def _login(client, user):
+    with client.session_transaction() as sess:
+        sess['user_id'] = user.id
+        sess['role'] = user.role.value
+
+
+def test_create_requires_login(client, db_session):
     resp = client.get('/seller/listings/create')
     assert resp.status_code == 401
 
 
-def test_create_requires_seller(client):
-    with client.session_transaction() as sess:
-        sess['user_id'] = 2
-        sess['role'] = 'buyer'
+def test_create_requires_seller(client, make_user):
+    buyer = make_user('listing-buyer@test.local', role=UserRole.BUYER)
+    _login(client, buyer)
 
     resp = client.get('/seller/listings/create')
     assert resp.status_code == 403
 
 
-def test_create_listing_success(client, db_session):
-    # Sign in as seller
-    with client.session_transaction() as sess:
-        sess['user_id'] = 10
-        sess['role'] = 'seller'
+def test_create_listing_success(client, db_session, make_user):
+    seller = make_user('listing-seller@test.local', role=UserRole.SELLER)
+    _login(client, seller)
 
     data = {'title': 'Test Item', 'description': 'Nice', 'price': '12.50'}
     resp = client.post('/seller/listings/create', data=data, follow_redirects=False)
@@ -31,14 +35,12 @@ def test_create_listing_success(client, db_session):
     # Verify DB record exists
     item = db_session.query(ProductListing).filter_by(title='Test Item').one_or_none()
     assert item is not None
-    assert item.seller_id == 10
+    assert item.seller_id == seller.id
 
 
-def test_create_listing_with_image(client, db_session, tmp_path, app):
-    # Sign in as seller
-    with client.session_transaction() as sess:
-        sess['user_id'] = 11
-        sess['role'] = 'seller'
+def test_create_listing_with_image(client, db_session, make_user, tmp_path, app):
+    seller = make_user('listing-img-seller@test.local', role=UserRole.SELLER)
+    _login(client, seller)
 
     # Create a minimal PNG file
     png = b"\x89PNG\r\n\x1a\n" + b"data"
@@ -61,12 +63,15 @@ def test_create_listing_with_image(client, db_session, tmp_path, app):
     assert uf.listing_id is not None
 
 
-def test_edit_requires_owner(client, db_session):
-    # Create a listing owned by user 20
+def test_edit_requires_owner(client, db_session, make_user):
+    # Create a listing owned by seller A
     from app.models.enums import ListingCondition
 
+    seller_a = make_user('owner-a@test.local', role=UserRole.SELLER)
+    seller_b = make_user('owner-b@test.local', role=UserRole.SELLER)
+
     listing = ProductListing(
-        seller_id=20,
+        seller_id=seller_a.id,
         title='Own Me',
         description='x',
         price=1.0,
@@ -77,21 +82,20 @@ def test_edit_requires_owner(client, db_session):
     db_session.add(listing)
     db_session.commit()
 
-    # Sign in as different seller
-    with client.session_transaction() as sess:
-        sess['user_id'] = 21
-        sess['role'] = 'seller'
+    # Sign in as a different seller
+    _login(client, seller_b)
 
     resp = client.get(f'/seller/listings/{listing.id}/edit')
     assert resp.status_code == 403
 
 
-def test_edit_owner_success(client, db_session):
-    # Create a listing owned by user 30
+def test_edit_owner_success(client, db_session, make_user):
     from app.models.enums import ListingCondition
 
+    seller = make_user('owner-c@test.local', role=UserRole.SELLER)
+
     listing = ProductListing(
-        seller_id=30,
+        seller_id=seller.id,
         title='Mine',
         description='old',
         price=5.0,
@@ -102,13 +106,11 @@ def test_edit_owner_success(client, db_session):
     db_session.add(listing)
     db_session.commit()
 
-    with client.session_transaction() as sess:
-        sess['user_id'] = 30
-        sess['role'] = 'seller'
+    _login(client, seller)
 
     data = {'title': 'Mine Updated', 'description': 'new', 'price': '6.00'}
     resp = client.post(f'/seller/listings/{listing.id}/edit', data=data, follow_redirects=False)
     assert resp.status_code == 302
 
-    updated = db_session.query(ProductListing).get(listing.id)
+    updated = db_session.get(ProductListing, listing.id)
     assert updated.title == 'Mine Updated'

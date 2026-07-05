@@ -102,9 +102,12 @@ def logout_user() -> None:
     session.clear()
 
 def get_current_user():
-    """Helper to get the current user from session."""
-    from app.services.user_service import get_user_by_id
-    user_id = session.get('user_id')
-    if user_id:
-        return get_user_by_id(user_id)
-    return None
+    """
+    Helper to get the current user for this request.
+
+    Delegates to rbac.load_current_user so the whole request shares one
+    DB lookup (cached on flask.g) and one fail-closed policy: stale or
+    suspended sessions are cleared and treated as anonymous.
+    """
+    from app.security.rbac import load_current_user
+    return load_current_user()

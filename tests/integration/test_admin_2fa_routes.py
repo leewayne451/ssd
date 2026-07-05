@@ -36,8 +36,21 @@ def test_admin_index_anonymous_is_401(client):
     assert client.get("/admin/").status_code == 401
 
 
-def test_admin_index_buyer_is_403(client):
-    _login(client, 999, "buyer")
+def _make_buyer():
+    user = User(
+        email=f"buyer{time.time_ns()}@example.com",
+        password_hash="x",
+        role=UserRole.BUYER,
+        status="active",
+    )
+    db.session.add(user)
+    db.session.commit()
+    return user
+
+
+def test_admin_index_buyer_is_403(client, db_session):
+    buyer = _make_buyer()
+    _login(client, buyer.id, "buyer")
     assert client.get("/admin/").status_code == 403
 
 
@@ -102,11 +115,12 @@ def test_verify_with_invalid_code_stays_locked(client, db_session):
     assert "/admin/2fa/verify" in follow.headers["Location"]
 
 
-def test_2fa_routes_require_admin(client):
+def test_2fa_routes_require_admin(client, db_session):
     # Anonymous -> 401, buyer -> 403, on both setup and verify.
     assert client.get("/admin/2fa/verify").status_code == 401
     assert client.get("/admin/2fa/setup").status_code == 401
-    _login(client, 123, "buyer")
+    buyer = _make_buyer()
+    _login(client, buyer.id, "buyer")
     assert client.get("/admin/2fa/verify").status_code == 403
     assert client.get("/admin/2fa/setup").status_code == 403
 
