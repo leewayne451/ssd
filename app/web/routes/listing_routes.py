@@ -95,8 +95,13 @@ def detail(listing_id):
 	if listing["approval_status"] != "approved" and not (is_owner or is_admin):
 		abort(404)
 
+	from app.services.review_service import get_reviews_for_listing
+
 	images = UploadedFile.query.filter_by(listing_id=listing_id).all()
-	return render_template("listings/detail.html", listing=listing, images=images)
+	reviews = get_reviews_for_listing(listing_id)
+	return render_template(
+		"listings/detail.html", listing=listing, images=images, reviews=reviews
+	)
 
 
 @listing_bp.route("/listings/<int:listing_id>/report", methods=["POST"])

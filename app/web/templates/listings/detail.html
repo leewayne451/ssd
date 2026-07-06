@@ -55,4 +55,28 @@
     </form>
 </div>
 {% endif %}
+
+{# --- M8: reviews from completed purchases (FR-16). Comments are user
+       content — rendered through Jinja autoescape, never |safe (SDR-02). --- #}
+<div class="mt-5">
+    <h2 class="h5">Reviews</h2>
+    {% if reviews %}
+    <ul class="list-group">
+        {% for r in reviews %}
+        <li class="list-group-item">
+            <div class="d-flex justify-content-between">
+                <strong>{{ r.rating }}/5</strong>
+                <small class="text-muted">
+                    Buyer #{{ r.buyer_id }} ·
+                    {{ r.created_at.strftime('%Y-%m-%d') if r.created_at else '' }}
+                </small>
+            </div>
+            {% if r.comment %}<p class="mb-0 mt-1">{{ r.comment }}</p>{% endif %}
+        </li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p class="text-muted">No reviews yet — reviews come only from verified completed purchases.</p>
+    {% endif %}
+</div>
 {% endblock %}

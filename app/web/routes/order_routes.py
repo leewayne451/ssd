@@ -57,7 +57,14 @@ def order_detail(order_id):
     # IDOR protection: only the buyer may view their own order (404/403 inside)
     require_order_buyer(order, current_user)
 
-    return render_template("orders/detail.html", order=order)
+    from app.services import review_service
+
+    return render_template(
+        "orders/detail.html",
+        order=order,
+        can_review=review_service.can_review(current_user, order),
+        review=review_service.get_review_for_order(order.id),
+    )
 
 
 @order_bp.route("/orders/<int:order_id>/transition", methods=["POST"])

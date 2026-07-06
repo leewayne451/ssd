@@ -30,5 +30,40 @@
 </form>
 {% endif %}
 
+{# --- M8: purchase-based review (FR-16/SFR-16) — offered only once the
+       workflow reached `sold`, decided server-side by review_service. --- #}
+{% if review %}
+<div class="card mb-3">
+    <div class="card-body">
+        <h2 class="h5 card-title">Your review</h2>
+        <p class="mb-1">Rating: {{ review.rating }}/5</p>
+        {% if review.comment %}<p class="mb-0">{{ review.comment }}</p>{% endif %}
+    </div>
+</div>
+{% elif can_review %}
+<div class="card mb-3">
+    <div class="card-body">
+        <h2 class="h5 card-title">Review this purchase</h2>
+        <form method="post" action="{{ url_for('review.submit', order_id=order.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="mb-3 col-md-3">
+                <label for="rating" class="form-label">Rating</label>
+                <select class="form-select" id="rating" name="rating" required>
+                    {% for r in [5, 4, 3, 2, 1] %}
+                    <option value="{{ r }}">{{ r }} / 5</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="comment" class="form-label">Comment (optional)</label>
+                <textarea class="form-control" id="comment" name="comment" rows="3"
+                          maxlength="2000"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">Submit review</button>
+        </form>
+    </div>
+</div>
+{% endif %}
+
 <a class="btn btn-outline-secondary" href="{{ url_for('order.list_orders') }}">Back to orders</a>
 {% endblock %}
