@@ -6,7 +6,7 @@ buyers could commit to the same item and sold items showed no state at all.
 The listing now mirrors the order through the D1 H-3 workflow.
 """
 
-import time
+import uuid
 
 from app.extensions import db
 from app.models.enums import (
@@ -22,7 +22,9 @@ from app.services import cart_service, order_service, workflow_service
 
 
 def _user(role=UserRole.BUYER):
-    user = User(email=f"u{time.time_ns()}@example.com", password_hash="x",
+    # uuid, not time_ns: Windows' clock tick is coarse enough that two rapid
+    # calls can collide on the unique-email constraint.
+    user = User(email=f"u{uuid.uuid4().hex}@example.com", password_hash="x",
                 role=role, status="active")
     db.session.add(user)
     db.session.commit()
