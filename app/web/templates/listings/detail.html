@@ -57,7 +57,7 @@
 {% endif %}
 
 {# --- M8: reviews from completed purchases (FR-16). Comments are user
-       content — rendered through Jinja autoescape, never |safe (SDR-02). --- #}
+       content — rendered through Jinja autoescape, never unescaped (SDR-02). --- #}
 <div class="mt-5">
     <h2 class="h5">Reviews</h2>
     {% if reviews %}
