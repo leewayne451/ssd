@@ -57,7 +57,7 @@ jobs:
             if [ "$healthy" -ne 1 ]; then
               echo "ERROR: app did not become healthy after deploy" >&2
               docker compose ps
-              docker compose logs --tail=50 web || true
+              docker compose logs --tail=50 web | grep -v 'SINGLE-USE' || true
               exit 1
             fi
 
