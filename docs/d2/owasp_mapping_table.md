@@ -42,5 +42,10 @@ capture from the live VM + CI, not code:
 | 5 | TLS handshake proof (`openssl s_client` / SSL Labs) against the live domain | M7 (Yi Phang) |
 | 15 | pip-audit artifact + dependency inventory (incl. `zxcvbn`) from a CI run | M7 (Yi Phang) |
 
-See [traceability_matrix.md](traceability_matrix.md) §8 "Still open" for the full
-list of VM-only evidence items (E-01…E-06) and the M8–M12 descope.
+See [traceability_matrix.md](traceability_matrix.md) §8b for the full list of
+VM-only evidence items (E-01…E-06). The former M8–M12 descope is **implemented
+as of 6 Jul** (seller applications, reviews, shipment tracking, disputes,
+backup/recovery — §8b), which also strengthens the XSS row (stored-XSS escape
+test on review comments) and the access-control rows (profile view/edit
+locked to owner+admin; dev login backdoor removed; CSP now 'self'-only with
+Bootstrap self-hosted).
