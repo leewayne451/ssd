@@ -23,7 +23,7 @@ Requires Python 3.12+.
 
 ```bash
 git clone <repository-url>
-cd ICT2216_Secure-Software-Development
+cd ssd
 
 # 1. Create and activate a virtual environment
 python -m venv .venv
