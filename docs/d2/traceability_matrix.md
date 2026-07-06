@@ -2,7 +2,7 @@
 
 **Source:** `doc/ICT2116_P2_team31_Deliverable_One.pdf` (all requirement families, incl. Appendices A-1…A-4 and §9.3 design decisions).
 **Generated:** 4 Jul 2026. **Updated 5 Jul 2026** after the `harden/d1-conformance` iteration landed all pre-freeze fixes (M1–M6 + R1); **updated again 6 Jul 2026** after the second iteration on the same branch completed M8–M12. Companion docs: [milestone_audit_followups.md](milestone_audit_followups.md) (fix tasks), [owasp_mapping_table.md](owasp_mapping_table.md) (OWASP view of the same evidence).
-**How to verify:** `pytest -q` runs every test cited here; test refs are `file::test_name`. **Suite status: 470 passing** (361 application + 109 AI-review tooling), 0 failures.
+**How to verify:** `pytest -q` runs every test cited here; test refs are `file::test_name`. **Suite status: 500 passing** (391 application + 109 AI-review tooling), 0 failures.
 
 > **Iteration note 1 (harden/d1-conformance, 5 Jul):** the T-01…T-41 backlog in §8 and the R1 edge-hardening are **implemented** — every ⏳-code item below is now ✅.
 > **Iteration note 2 (harden/d1-conformance, 6 Jul):** the former M8–M12 descope is **fully implemented** (seller applications, reviews, shipment tracking, disputes, backup/recovery — see §8b), plus UI conformance fixes (self-hosted Bootstrap, 'self'-only CSP, role-aware navigation) and an authorization audit of every route (dev backdoor removed; profile view/edit locked to owner+admin). **No ⏸ rows remain.** The only non-✅ rows left are M7 evidence captures that require the live VM (load numbers, browser screenshots, TLS/SSH proofs — the 🏗/⏳ rows).
@@ -75,12 +75,12 @@
 | SFR-06 | Search input validated (anti-injection) | 🔧 M3.2 | T-16, T-17; ORM-only queries (SDR-03) |
 | SFR-07 | Listing edit restricted to owner | ✅ | `test_listing_routes.py::test_edit_requires_owner` |
 | SFR-08 | Cart private to buyer | 🟡 | service scoped by user (`test_cart_service.py`); HTTP cross-user check rides on T-22 |
-| SFR-09 | Commitment only for available items, authorised buyer | 🟡 | `test_order_service.py` (server price ✅); **missing:** T-31 |
+| SFR-09 | Commitment only for available items, authorised buyer | ✅ | T-31 (stale-cart approval pulled) + `test_listing_lifecycle.py` (6 tests: listing mirrors D1 H-3, double-commit race blocked, cart refuses reserved/sold items) |
 | SFR-10 | Shipment updates only for own listings' orders | 🔧 M2.1/M4.2 | **missing:** T-25 |
 | SFR-11 | Checkout completes only after workflow checks | 🔧 M4.3 | **missing:** T-28 |
 | SFR-12 | Admin dashboard admin-only | ✅ | `test_admin_2fa_routes.py::test_admin_index_anonymous_is_401`, `::test_admin_index_buyer_is_403` |
 | SFR-13 | Suspension actions logged | 🔧 M5.1 | **missing:** T-32 |
-| SFR-14 | Listing moderation notes hidden from users | 🔧 M5.1 | **missing:** T-34 |
+| SFR-14 | Listing moderation notes hidden from users | ✅ | T-34 + `test_admin_order_ui.py::test_authentication_notes_admin_only` (verdict shows to buyer, notes admin-only) + `test_moderation_reasons.py::test_report_reason_never_shown_publicly` |
 | SFR-15 | Admin workflow updates logged | 🔧 M5.3/CTRL-003 | **missing:** T-37 |
 | SFR-16 | Reviews only for completed purchases | ✅ | `test_reviews.py::test_review_blocked_before_purchase_completes`, `::test_non_buyer_cannot_review_someone_elses_order`, `::test_one_review_per_order` |
 | SFR-17 | Disputes own-order only | ✅ | `test_disputes.py::test_buyer_cannot_dispute_someone_elses_order`, `::test_buyer_sees_only_own_disputes` |
@@ -135,7 +135,7 @@
 | NFSR-17 | Audit log integrity (non-admin cannot alter) | ✅ partial | `test_admin_logs.py::test_audit_log_viewer_is_read_only`, `::test_non_admin_blocked_from_logs` |
 | NFSR-18 | Security log field quality | 🔧 M5 | asserted inside T-06, T-37 |
 | NFSR-19 | Business record retention | 🟡 | `::test_transition_order_records_history` |
-| NFSR-20 | Security event alerting (admin-visible) | 🟡 residual R5 | `security_event_service.py` + admin log page = alert surface; report framing sentence |
+| NFSR-20 | Security event alerting (admin-visible) | ✅ | `/admin/security` dashboard: per-type counts (all-time/7d/24h) + recent events (`admin_routes.py::security`); `test_security_dashboard.py` (3 tests). Edge nginx blocks stay log-evidence (E-04) |
 | NFSR-21 | Secure error messages (no stack traces/paths) | ✅ | `test_error_routes.py::test_500_returns_generic_page_with_no_leaked_detail` |
 
 ## 6. Secure Development Requirements (SDR, Appendix A-4)
@@ -171,7 +171,7 @@
 | 9.3.3 Dedicated `/admin/*` routes, separated logic | ✅ | `admin_routes.py` blueprint — all actions role+2FA-gated |
 | 9.3.4 Simulated payment, server-controlled transitions | ✅ | `checkout_service.py`; T-26, T-27, T-28 |
 | 9.3.5 Authentication workflow (H-3 state machine) | ✅ | map now matches H-3 exactly — `test_workflow_d1.py::test_transition_matrix_exactly_matches_d1_h3` (T-23, 64 combos), `::test_shipped_to_sold_direct_is_rejected` (T-24); admin review `test_admin_operations.py::test_admin_authentication_review_flips_state_and_records` (T-35) |
-| 9.3.6 Security event alerting | 🟡 R5 | `security_event_service.py` + admin log viewer = alert surface; NFSR-20 report framing |
+| 9.3.6 Security event alerting | ✅ | `security_event_service.py` + `/admin/security` dashboard (per-type aggregates + recent events) + admin log viewer; `test_security_dashboard.py` |
 | 9.3.7 Security headers (CSP/XFO/nosniff/Referrer) | ✅ | FSR-20 tests |
 
 ## 8. Test backlog — DONE (implemented in harden/d1-conformance, 5 Jul)
@@ -222,11 +222,25 @@ The former stretch/descope backlog is fully implemented. 45 new tests across fiv
 - **Authorization audit (all routes):** `/dev/login_as_seller` backdoor deleted (T-13 hardened); `GET /profile/<id>` was world-readable PII → now owner+admin with ownership checked before lookup; profile-edit IDOR that auto-created rows for other users fixed (regression tests in `test_profile_idor.py`).
 - **Admin bootstrap provisioning:** `flask seed-admin` (`app/cli.py`) — idempotent, env-driven (`ADMIN_EMAIL`/`ADMIN_PASSWORD`, no secrets in repo per SDR-11), same password policy as registration (FSR-02), no 2FA bypass (FSR-01), audited; run automatically by the Docker entrypoint — `tests/integration/test_seed_admin_cli.py` (7 tests). Needed because registration always creates a buyer and no in-app path to the admin role exists.
 
+## 8c. UI completeness pass — DONE (harden/d1-conformance, 6 Jul, second pass)
+
+A route-vs-template sweep found 16 features with backend logic but missing/incomplete UI (or, in two cases, real functional gaps). All 16 fixed; 30 new tests across 7 files. Highlights:
+
+- **FR-15 reachable:** the admin workflow-update route finally has a form (legal next states only); refunds (D1 §9.3.4 paid→refunded) got their first route + button — `test_admin_order_ui.py`.
+- **SFR-14 hardened both ways:** authentication verdicts render admin-side WITH notes, buyer-side verdict+date only; report/rejection reasons now flow end-to-end and never render publicly — `test_moderation_reasons.py`.
+- **SFR-09 correctness fix:** listings now mirror the D1 H-3 workflow — double-commit of a one-of-a-kind item is blocked at cart AND commit, sold/reserved states render publicly — `test_listing_lifecycle.py`.
+- **FSR-05 operator control:** lockout state visible on /admin/users + audited unlock — `test_admin_lockout_ui.py`.
+- **NFSR-20 alert surface:** /admin/security aggregates SecurityEvent signals (per-type totals/7d/24h + recent 20); admin index gained live queue counters (FR-12) — `test_security_dashboard.py`.
+- **Seller UX:** /seller/listings shows own pending/rejected listings — `test_seller_listings_page.py`.
+- **Buyer UX:** order-history timeline + shipment/verdict info on the order page; listing index paginates at 12/page with aggregate ratings — `test_listing_index_extras.py`.
+- **Dead control removed:** login's Remember-Me checkbox (backend never read it; honouring it would fight the FSR-04 inactivity timeout).
+- **CSP conformance:** all inline `style=""` attributes (silently ignored under `style-src 'self'`) replaced with `main.css` classes; verified in-browser, zero console violations.
+
 ### Still open — require the live VM (unchanged)
 - **M7 evidence captures** (need the deployed VM, not code): E-01 load/perf numbers (NFR-05…10, NFSR-13–16), E-02 browser matrix (NFR-12/SDR-18), E-03 data-min review note, E-05 TLS `openssl`/SSL-Labs output (FSR-18), E-06 VM exposure + SSH checks (SDR-12–14). Config for all of these already exists; only the screenshots/transcripts remain.
-- **NFSR-20** security-event alerting: implemented as SecurityEvent rows + admin viewer; only the report framing sentence is outstanding.
+- ~~NFSR-20 security-event alerting~~ — closed by §8c: `/admin/security` dashboard is the admin-visible alert surface.
 
-## 9. Coverage snapshot (post-iteration 2, 6 Jul)
+## 9. Coverage snapshot (post-iteration 2 + UI pass, 6 Jul)
 
 | Family | Total | ✅ done+tested | 🟡/🔧 remaining code | 🏗/⏳ VM evidence | ⏸ descoped |
 |---|---|---|---|---|---|
@@ -234,7 +248,7 @@ The former stretch/descope backlog is fully implemented. 45 new tests across fiv
 | NFR | 16 | 4 | 1 (NFR-15 retention) | 9 | — |
 | SFR | 17 | 17 | — | — | — |
 | FSR | 26 | 18 | 1 (FSR-16 review) | 6 | — |
-| NFSR | 21 | 9 | 1 (NFSR-20 framing) | 9 | — |
+| NFSR | 21 | 10 | — | 9 | — |
 | SDR | 19 | 12 | — | 6 | — |
 
-Current test suite: **470 tests** (361 application across unit/integration/security + 109 `tests/ai_review/` + workflow-policy guard), **0 failures**. The T-01…T-41 backlog, R1 edge-hardening, and the full M8–M12 feature set are complete; **nothing is descoped** — what remains is VM-only evidence capture (§8b "Still open").
+Current test suite: **500 tests** (391 application across unit/integration/security + 109 `tests/ai_review/` + workflow-policy guard), **0 failures**. The T-01…T-41 backlog, R1 edge-hardening, the full M8–M12 feature set, and the §8c UI completeness pass are complete; **nothing is descoped** — what remains is VM-only evidence capture (§8c "Still open").
