@@ -61,6 +61,11 @@
                             <a class="nav-link" href="{{ url_for('order.list_orders') }}">My orders</a>
                         </li>
                     {% endif %}
+                    {% if role == 'buyer' %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('seller.apply') }}">Apply to sell</a>
+                        </li>
+                    {% endif %}
                     {% if role == 'seller' %}
                         <li class="nav-item">
                             <a class="nav-link" href="{{ url_for('listing.create') }}">Create listing</a>

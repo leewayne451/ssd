@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Admin · Seller applications — Château Collective{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-4">Seller applications</h1>
+
+{% if pending %}
+<table class="table align-middle">
+    <thead>
+        <tr>
+            <th scope="col">ID</th>
+            <th scope="col">Applicant user</th>
+            <th scope="col">Reason</th>
+            <th scope="col">Submitted</th>
+            <th scope="col">Action</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for a in pending %}
+        <tr>
+            <td>{{ a.id }}</td>
+            <td>#{{ a.user_id }}</td>
+            <td class="text-break" style="max-width: 28rem;">{{ a.reason }}</td>
+            <td>{{ a.created_at.strftime('%Y-%m-%d %H:%M') if a.created_at else '—' }}</td>
+            <td>
+                <div class="d-flex gap-2">
+                    <form method="post" action="{{ url_for('admin.approve_seller_application', application_id=a.id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-sm btn-outline-success">Approve</button>
+                    </form>
+                    <form method="post" action="{{ url_for('admin.reject_seller_application', application_id=a.id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-sm btn-outline-danger">Reject</button>
+                    </form>
+                </div>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>No pending applications.</p>
+{% endif %}
+
+<a class="btn btn-outline-secondary" href="{{ url_for('admin.index') }}">Back to admin</a>
+{% endblock %}

@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Become a seller — Château Collective{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-4">Become a verified seller</h1>
+
+{% if is_seller %}
+<div class="alert alert-success">
+    You are already a verified seller.
+    <a href="{{ url_for('listing.create') }}" class="alert-link">Create a listing</a>.
+</div>
+{% elif application %}
+<div class="card mb-4">
+    <div class="card-body">
+        <h2 class="h5 card-title">Your application</h2>
+        <p class="mb-1">
+            Status:
+            {% if application.status.value == 'pending' %}
+            <span class="badge text-bg-warning">pending review</span>
+            {% elif application.status.value == 'approved' %}
+            <span class="badge text-bg-success">approved</span>
+            {% else %}
+            <span class="badge text-bg-danger">rejected</span>
+            {% endif %}
+        </p>
+        <p class="text-muted small mb-2">
+            Submitted {{ application.created_at.strftime('%Y-%m-%d %H:%M') if application.created_at else '—' }}
+        </p>
+        <p class="mb-0">{{ application.reason }}</p>
+    </div>
+</div>
+{% if application.status.value == 'rejected' %}
+<p>You may submit a new application below.</p>
+{% endif %}
+{% endif %}
+
+{% if not is_seller and (not application or application.status.value == 'rejected') %}
+<form method="post" action="{{ url_for('seller.apply') }}" class="col-md-8">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="mb-3">
+        <label for="reason" class="form-label">Why do you want to sell on Château Collective?</label>
+        <textarea class="form-control" id="reason" name="reason" rows="5" required
+                  maxlength="2000"
+                  placeholder="Tell us about the items you plan to sell and your experience with luxury goods."></textarea>
+        <div class="form-text">Reviewed by an administrator. Maximum 2000 characters.</div>
+    </div>
+    <button type="submit" class="btn btn-primary">Submit application</button>
+</form>
+{% endif %}
+{% endblock %}

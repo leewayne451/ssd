@@ -8,7 +8,7 @@ from app.models.user import User
 from app.models.product_listing import ProductListing
 from app.models.order import Order
 from app.models.enums import ApprovalStatus, WorkflowStatus
-from app.services import admin_service
+from app.services import admin_service, seller_service
 from app.services.auth_service import get_current_user
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
@@ -125,6 +125,42 @@ def reject_listing(listing_id):
     else:
         flash("Listing rejected.", "success")
     return redirect(url_for("admin.listings"))
+
+
+# --- FR-04 / SFR-04: seller application review -----------------------------
+
+@admin_bp.route("/seller-applications")
+@role_required("admin")
+@admin_2fa_required
+def seller_applications():
+    pending = seller_service.list_pending_applications()
+    return render_template("admin/seller_applications.html", pending=pending)
+
+
+@admin_bp.route("/seller-applications/<int:application_id>/approve", methods=["POST"])
+@role_required("admin")
+@admin_2fa_required
+def approve_seller_application(application_id):
+    admin = get_current_user()
+    try:
+        seller_service.approve_application(admin, application_id)
+        flash("Application approved — the user is now a verified seller.", "success")
+    except ValueError as e:
+        flash(str(e), "danger")
+    return redirect(url_for("admin.seller_applications"))
+
+
+@admin_bp.route("/seller-applications/<int:application_id>/reject", methods=["POST"])
+@role_required("admin")
+@admin_2fa_required
+def reject_seller_application(application_id):
+    admin = get_current_user()
+    try:
+        seller_service.reject_application(admin, application_id)
+        flash("Application rejected.", "success")
+    except ValueError as e:
+        flash(str(e), "danger")
+    return redirect(url_for("admin.seller_applications"))
 
 
 # --- FR-15 + authentication review: order/workflow management -------------

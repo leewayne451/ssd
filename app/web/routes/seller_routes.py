@@ -1,5 +1,41 @@
-from flask import Blueprint
+"""Seller-facing routes (M10 seller application; M9 sales/shipments).
+
+FR-04 / SFR-04: a logged-in buyer applies to become a verified seller.
+The application page shows only the requester's own application — no
+route ever exposes another user's application (confidentiality is also
+enforced service-side by querying per-user).
+"""
+from flask import Blueprint, flash, redirect, render_template, request, url_for
+
+from app.security.rbac import login_required
+from app.services import seller_service
+from app.services.auth_service import get_current_user
 
 seller_bp = Blueprint("seller", __name__)
 
-# TODO: seller application, seller dashboard, sales records
+
+@seller_bp.route("/seller/apply", methods=("GET", "POST"))
+@login_required
+def apply():
+    """Apply to become a verified seller (FR-04)."""
+    current_user = get_current_user()
+
+    if request.method == "POST":
+        application, error = seller_service.apply_to_become_seller(
+            current_user, request.form.get("reason", "")
+        )
+        if error:
+            flash(error, "danger")
+        else:
+            flash(
+                "Application submitted — an administrator will review it shortly.",
+                "success",
+            )
+        return redirect(url_for("seller.apply"))
+
+    application = seller_service.get_latest_application_for_user(current_user)
+    return render_template(
+        "seller/apply.html",
+        application=application,
+        is_seller=current_user.role.value == "seller",
+    )

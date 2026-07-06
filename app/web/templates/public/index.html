@@ -48,6 +48,18 @@
         </div>
     </div>
 
+    {% if role == 'buyer' %}
+    <div class="col">
+        <div class="card h-100">
+            <div class="card-body">
+                <h2 class="h5 card-title">Become a seller</h2>
+                <p class="card-text text-muted">Apply to sell your luxury items — reviewed by our team.</p>
+                <a href="{{ url_for('seller.apply') }}" class="btn btn-outline-primary">Apply to sell</a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     {% if role == 'seller' %}
     <div class="col">
         <div class="card h-100">
