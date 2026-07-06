@@ -22,14 +22,91 @@ _VALID_WORKFLOW_VALUES = {s.value for s in WorkflowStatus}
 @admin_2fa_required
 def index():
     """
-    Admin landing page — gated by admin role *and* a verified second factor.
-
-    This is the canonical demonstration of the M2 admin-2FA control. M5 expands
-    the admin area (dashboard, log viewer, etc.); any view added to this
-    blueprint should keep the ``@role_required("admin")`` + ``@admin_2fa_required``
-    decorator pair so the whole /admin surface stays protected.
+    Admin dashboard (FR-12) — gated by admin role *and* a verified second
+    factor. Live queue counters give the "dashboard" view D1 asks for; every
+    view added to this blueprint must keep the ``@role_required("admin")`` +
+    ``@admin_2fa_required`` decorator pair so the whole /admin surface stays
+    protected.
     """
-    return render_template("admin/index.html")
+    from datetime import datetime, timedelta, timezone
+
+    from app.models.dispute import Dispute
+    from app.models.enums import AccountStatus, DisputeStatus
+    from app.models.seller_application import SellerApplication
+
+    day_ago = datetime.now(timezone.utc) - timedelta(hours=24)
+    counts = {
+        "users_total": User.query.count(),
+        "users_suspended": User.query.filter_by(status=AccountStatus.SUSPENDED).count(),
+        "listings_pending": ProductListing.query.filter_by(
+            approval_status=ApprovalStatus.PENDING).count(),
+        "listings_reported": ProductListing.query.filter_by(reported=True).count(),
+        "applications_pending": SellerApplication.query.filter_by(
+            status=ApprovalStatus.PENDING).count(),
+        "disputes_open": Dispute.query.filter(Dispute.status.in_(
+            [DisputeStatus.OPEN, DisputeStatus.UNDER_REVIEW])).count(),
+        "orders_awaiting_auth": Order.query.filter_by(
+            workflow_status=WorkflowStatus.UNDER_AUTHENTICATION).count(),
+        "events_24h": SecurityEvent.query.filter(
+            SecurityEvent.created_at >= day_ago).count(),
+    }
+    return render_template("admin/index.html", counts=counts)
+
+
+@admin_bp.route("/security")
+@role_required("admin")
+@admin_2fa_required
+def security():
+    """
+    Security dashboard (NFSR-20 / D1 §9.3.6 alert surface).
+
+    Aggregates the application-level abuse signals the platform records as
+    SecurityEvent rows (lockouts, access denials, rejected sessions, listing
+    reports, rejected workflow transitions…). Edge-level rate-limit and
+    bad-bot blocks are enforced by nginx and live in its logs on the VM —
+    see docs/d2/evidence/rate-limiting.md — so they are framed here, not
+    charted from the DB.
+    """
+    from datetime import datetime, timedelta, timezone
+
+    now = datetime.now(timezone.utc)
+    day_ago = now - timedelta(hours=24)
+    week_ago = now - timedelta(days=7)
+
+    def _counts_since(cutoff=None):
+        query = db.session.query(
+            SecurityEvent.event_type, db.func.count(SecurityEvent.id)
+        )
+        if cutoff is not None:
+            query = query.filter(SecurityEvent.created_at >= cutoff)
+        return dict(query.group_by(SecurityEvent.event_type).all())
+
+    total_by_type = _counts_since(None)
+    day_by_type = _counts_since(day_ago)
+    week_by_type = _counts_since(week_ago)
+
+    max_total = max(total_by_type.values(), default=0)
+    rows = [
+        {
+            "event_type": event_type,
+            "total": total,
+            "last_7d": week_by_type.get(event_type, 0),
+            "last_24h": day_by_type.get(event_type, 0),
+            # Width decile for the CSS meter (0-100 in steps of 10) — no
+            # inline styles, our CSP forbids them.
+            "decile": int(round((total / max_total) * 10)) * 10 if max_total else 0,
+        }
+        for event_type, total in sorted(
+            total_by_type.items(), key=lambda item: item[1], reverse=True
+        )
+    ]
+
+    recent = (
+        SecurityEvent.query.order_by(
+            SecurityEvent.created_at.desc(), SecurityEvent.id.desc()
+        ).limit(20).all()
+    )
+    return render_template("admin/security.html", rows=rows, recent=recent)
 
 @admin_bp.route("/logs")
 @role_required("admin")

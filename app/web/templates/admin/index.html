@@ -1,11 +1,70 @@
 {% extends "base.html" %}
 {% block title %}Admin — Château Collective{% endblock %}
 {% block content %}
-<h1 class="mb-3">Admin</h1>
+<h1 class="mb-3">Admin dashboard</h1>
 <p class="text-muted">
     You are authenticated as an administrator and have cleared two-factor
     verification for this session.
 </p>
+
+<div class="row row-cols-2 row-cols-md-4 g-3 mb-4">
+    <div class="col">
+        <div class="card h-100 text-center">
+            <div class="card-body">
+                <div class="fs-3 fw-bold">{{ counts.listings_pending }}</div>
+                <div class="text-muted small">listings pending approval</div>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card h-100 text-center">
+            <div class="card-body">
+                <div class="fs-3 fw-bold">{{ counts.listings_reported }}</div>
+                <div class="text-muted small">reported listings</div>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card h-100 text-center">
+            <div class="card-body">
+                <div class="fs-3 fw-bold">{{ counts.orders_awaiting_auth }}</div>
+                <div class="text-muted small">orders awaiting authentication</div>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card h-100 text-center">
+            <div class="card-body">
+                <div class="fs-3 fw-bold">{{ counts.disputes_open }}</div>
+                <div class="text-muted small">open disputes</div>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card h-100 text-center">
+            <div class="card-body">
+                <div class="fs-3 fw-bold">{{ counts.applications_pending }}</div>
+                <div class="text-muted small">seller applications pending</div>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card h-100 text-center">
+            <div class="card-body">
+                <div class="fs-3 fw-bold">{{ counts.users_total }}</div>
+                <div class="text-muted small">users ({{ counts.users_suspended }} suspended)</div>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card h-100 text-center border-warning">
+            <div class="card-body">
+                <div class="fs-3 fw-bold">{{ counts.events_24h }}</div>
+                <div class="text-muted small">security events, last 24 h</div>
+            </div>
+        </div>
+    </div>
+</div>
 
 <div class="d-flex flex-wrap gap-2">
     <a href="{{ url_for('admin.users') }}" class="btn btn-outline-secondary">User management</a>
@@ -13,6 +72,7 @@
     <a href="{{ url_for('admin.listings') }}" class="btn btn-outline-secondary">Listing moderation</a>
     <a href="{{ url_for('admin.orders') }}" class="btn btn-outline-secondary">Orders &amp; authentication</a>
     <a href="{{ url_for('admin.disputes') }}" class="btn btn-outline-secondary">Disputes</a>
+    <a href="{{ url_for('admin.security') }}" class="btn btn-outline-secondary">Security dashboard</a>
     <a href="{{ url_for('admin.logs') }}" class="btn btn-outline-secondary">Audit &amp; security logs</a>
     <a href="{{ url_for('admin.backups') }}" class="btn btn-outline-secondary">Backups &amp; recovery</a>
 </div>

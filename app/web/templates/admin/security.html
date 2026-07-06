@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}Admin · Security dashboard — Château Collective{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-2">Security dashboard</h1>
+<p class="text-muted">
+    Application-level abuse and access-control signals recorded by the
+    platform (NFSR-20 alert surface). Edge-level rate-limiting and bot
+    filtering are enforced by nginx before requests reach the app — those
+    blocks are captured in the VM's nginx logs
+    (see <code>docs/d2/evidence/rate-limiting.md</code>), not in this database.
+</p>
+
+<h2 class="h5 mt-4">Events by type</h2>
+{% if rows %}
+<table class="table align-middle">
+    <thead>
+        <tr>
+            <th scope="col">Event type</th>
+            <th scope="col" class="w-25">Volume</th>
+            <th scope="col">Total</th>
+            <th scope="col">Last 7 days</th>
+            <th scope="col">Last 24 h</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for r in rows %}
+        <tr>
+            <td><code>{{ r.event_type }}</code></td>
+            <td>
+                <div class="meter"><span class="meter-fill p{{ r.decile }}"></span></div>
+            </td>
+            <td>{{ r.total }}</td>
+            <td>{{ r.last_7d }}</td>
+            <td>
+                {% if r.last_24h %}
+                <span class="badge text-bg-warning">{{ r.last_24h }}</span>
+                {% else %}
+                0
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>No security events recorded yet.</p>
+{% endif %}
+
+<h2 class="h5 mt-4">Most recent events</h2>
+{% if recent %}
+<table class="table table-sm align-middle">
+    <thead>
+        <tr>
+            <th scope="col">When</th>
+            <th scope="col">Type</th>
+            <th scope="col">User</th>
+            <th scope="col">Source IP</th>
+            <th scope="col">Details</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for e in recent %}
+        <tr>
+            <td class="text-nowrap">{{ e.created_at.strftime('%Y-%m-%d %H:%M') if e.created_at else '—' }}</td>
+            <td><code>{{ e.event_type }}</code></td>
+            <td>{{ '#' ~ e.user_id if e.user_id else '—' }}</td>
+            <td>{{ e.source_ip or '—' }}</td>
+            <td class="cell-clamp">{{ e.details or '—' }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>No events yet.</p>
+{% endif %}
+
+<a class="btn btn-outline-secondary" href="{{ url_for('admin.index') }}">Back to admin</a>
+{% endblock %}
