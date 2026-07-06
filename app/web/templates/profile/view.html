@@ -19,7 +19,10 @@
         <p><strong>Bio:</strong><br>{{ profile.bio }}</p>
     {% endif %}
 
-    {% if current_user.is_authenticated and current_user.id == profile.user_id %}
+    {# current_user is a plain User row (or None) — Flask-Login's
+       is_authenticated attribute does not exist and silently rendered falsy,
+       so the edit button never showed. #}
+    {% if current_user and current_user.id == profile.user_id %}
         <a href="{{ url_for('profile.edit_profile', user_id=profile.user_id) }}" class="btn btn-primary">Edit Profile</a>
     {% endif %}
 </div>
