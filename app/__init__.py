@@ -81,7 +81,28 @@ def create_app(config_name=None):
         if not check_inactivity_timeout():
             flash('Session timed out due to inactivity.', 'warning')
             return redirect(url_for('auth.login'))
-        
+
         set_activity_timestamp()
+
+    # Forced first-login rotation quarantine: an account provisioned with a
+    # single-use bootstrap password (seed-admin) can reach ONLY the
+    # change-password page and logout until it sets its own password. This
+    # runs before any view, so admin 2FA enrolment is only reachable after
+    # the bootstrap credential has been retired.
+    _ROTATION_EXEMPT_ENDPOINTS = {
+        None, "static", "auth.change_password_view", "auth.logout", "auth.login",
+    }
+
+    @app.before_request
+    def enforce_password_rotation():
+        if request.endpoint in _ROTATION_EXEMPT_ENDPOINTS:
+            return
+
+        from app.security.rbac import load_current_user
+
+        user = load_current_user()
+        if user is not None and getattr(user, "must_change_password", False):
+            flash("Please set your own password to continue.", "warning")
+            return redirect(url_for("auth.change_password_view"))
 
     return app

@@ -57,8 +57,19 @@ def test_noop_when_env_not_configured(app, db_session):
     assert User.query.count() == 0
 
 
-def test_half_configured_env_fails_loudly(app, db_session):
+def test_email_only_enters_generate_mode(app, db_session):
+    """Email without a password is the RECOMMENDED mode since the rotation
+    pattern landed: a single-use credential is generated and force-rotated
+    (full coverage in test_password_rotation.py)."""
     result = _run(app, ["--email", "root@example.com"])
+    assert result.exit_code == 0, result.output
+    assert "SINGLE-USE bootstrap password:" in result.output
+    admin = User.query.filter_by(email="root@example.com").one()
+    assert admin.must_change_password is True
+
+
+def test_password_without_email_fails_loudly(app, db_session):
+    result = _run(app, ["--password", STRONG])
     assert result.exit_code != 0
     assert User.query.count() == 0
 

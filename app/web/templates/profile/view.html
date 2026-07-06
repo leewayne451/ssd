@@ -23,7 +23,10 @@
        is_authenticated attribute does not exist and silently rendered falsy,
        so the edit button never showed. #}
     {% if current_user and current_user.id == profile.user_id %}
-        <a href="{{ url_for('profile.edit_profile', user_id=profile.user_id) }}" class="btn btn-primary">Edit Profile</a>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('profile.edit_profile', user_id=profile.user_id) }}" class="btn btn-primary">Edit Profile</a>
+            <a href="{{ url_for('auth.change_password_view') }}" class="btn btn-outline-secondary">Change password</a>
+        </div>
     {% endif %}
 </div>
 {% endblock %}

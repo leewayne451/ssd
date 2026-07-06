@@ -38,3 +38,14 @@ class LoginForm(FlaskForm):
     email = StringField('Email', validators=[DataRequired(), Email()])
     password = PasswordField('Password', validators=[DataRequired()])
     submit = SubmitField('Login')
+
+
+class ChangePasswordForm(FlaskForm):
+    """Password rotation (FR-02): requires the current password, and the new
+    one faces the full server-side policy in the route (FSR-02)."""
+    current_password = PasswordField('Current password', validators=[DataRequired()])
+    new_password = PasswordField('New password', validators=[DataRequired(), Length(min=8)])
+    confirm_password = PasswordField('Confirm new password', validators=[
+        DataRequired(), EqualTo('new_password', message='Passwords must match.'),
+    ])
+    submit = SubmitField('Change password')

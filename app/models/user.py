@@ -35,6 +35,11 @@ class User(db.Model):
     email_confirmed = db.Column(db.Boolean, default=False)
     email_confirmed_at = db.Column(db.DateTime, nullable=True)
 
+    # Forced first-login rotation: set on accounts provisioned with a
+    # single-use bootstrap password (flask seed-admin). While True, every
+    # authenticated request is quarantined to the change-password page.
+    must_change_password = db.Column(db.Boolean, nullable=False, default=False)
+
     # Admin two-factor authentication (TOTP) — see app/security/admin_2fa.py.
     # Secret is the base32 seed shared with the authenticator app; should be
     # encrypted at rest in production. totp_enabled flips on once enrolment is

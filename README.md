@@ -39,8 +39,10 @@ cp .env.example .env               # Windows PowerShell: Copy-Item .env.example 
 # 4. Apply database migrations (SQLite at instance/chateau.db)
 flask db upgrade
 
-# 5. Create the administrator account (no in-app path to the admin role exists)
-flask seed-admin --email admin@example.com --password "a-strong-passphrase"
+# 5. Create the administrator account (no in-app path to the admin role exists).
+#    Email-only prints a SINGLE-USE password and forces rotation on first login;
+#    for local dev you may pass an explicit --password instead.
+flask seed-admin --email admin@example.com
 
 # 6. Run the development server
 python manage.py
@@ -52,13 +54,18 @@ The `.env.example` defaults are fine for local development. Set a strong
 ### Admin account & 2FA
 
 Registration always creates a buyer — the bootstrap administrator is
-provisioned with the idempotent `flask seed-admin` command (step 5 above, or
-set `ADMIN_EMAIL`/`ADMIN_PASSWORD` in `.env` and run it without options; the
-Docker entrypoint runs it automatically on every start). The password must
-pass the same strength policy as normal registration. On the first visit to
-`/admin` the account is walked through TOTP two-factor enrolment — scan the
-QR code with any authenticator app (Google Authenticator, Aegis, 1Password…);
-no admin action works until 2FA is verified.
+provisioned with the idempotent `flask seed-admin` command (step 5 above; the
+Docker entrypoint runs it automatically on every start using `ADMIN_EMAIL`
+from `.env`). The recommended email-only mode generates a strong
+**single-use** password, prints it exactly once (terminal locally,
+`docker compose logs web` in production), and quarantines the account behind
+a **forced password change** — nothing else is reachable until the account
+sets its own password, so the bootstrap value is dead after first login and
+no secret is ever stored in `.env`. After rotating, the first visit to
+`/admin` walks the account through TOTP two-factor enrolment — scan the QR
+code with any authenticator app (Google Authenticator, Aegis, 1Password…);
+no admin action works until 2FA is verified. Every logged-in user can rotate
+their own password at `/auth/change-password` (linked from their profile).
 
 ## Testing
 

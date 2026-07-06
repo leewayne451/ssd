@@ -129,6 +129,36 @@ def login_user(email: str, password: str) -> tuple[User | None, str | None]:
 
     return user, None
 
+def change_password(user, current_password: str, new_password: str) -> tuple[bool, str | None]:
+    """Rotate `user`'s password (FR-02). Returns (ok, error).
+
+    Requires proof of the current password, enforces the full policy on the
+    new one (FSR-02), rejects reuse, clears any forced-rotation flag (the
+    bootstrap credential dies here) and audits the change.
+    """
+    if user is None:
+        return False, "You must be logged in."
+
+    if not check_password_hash(user.password_hash, current_password or ""):
+        record(user, "password_change_failed", "user", user.id,
+               {"reason": "wrong_current_password"})
+        return False, "Current password is incorrect."
+
+    is_valid, error = validate_password(new_password or "")
+    if not is_valid:
+        return False, error
+
+    if check_password_hash(user.password_hash, new_password):
+        return False, "The new password must be different from the current one."
+
+    user.password_hash = generate_password_hash(new_password)
+    user.must_change_password = False
+    db.session.commit()
+
+    record(user, "password_changed", "user", user.id)
+    return True, None
+
+
 def logout_user() -> None:
     """Log out the current user."""
     user_id = session.get('user_id')
