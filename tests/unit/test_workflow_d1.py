@@ -91,24 +91,32 @@ def test_transition_route_rejects_invalid_status_strings(client, login_as, appro
 
 
 def test_commit_skips_unapproved_listing(client, db_session, make_user, buyer_user):
-    """T-31: a stale cart cannot commit to a pending/unapproved item (SFR-09)."""
+    """T-31: a stale cart cannot commit to a no-longer-approved item (SFR-09).
+
+    The item is approved when carted (cart_service now refuses anything
+    else), then loses approval before checkout — the commit must skip it."""
     from app.models.product_listing import ProductListing
     from app.services.order_service import place_orders_from_cart
 
     seller = make_user("pending-seller@test.local", role=UserRole.SELLER)
-    pending = ProductListing(
-        seller_id=seller.id, title="Not yet approved", description="x",
+    listing = ProductListing(
+        seller_id=seller.id, title="Approved for now", description="x",
         category="watches", brand="B", price=10.0,
         condition=ListingCondition.PRE_OWNED,
-        approval_status=ApprovalStatus.PENDING,
+        approval_status=ApprovalStatus.APPROVED,
     )
-    db.session.add(pending)
+    db.session.add(listing)
     db.session.commit()
 
-    add_item(buyer_user, pending.id, 1)
+    add_item(buyer_user, listing.id, 1)
+
+    # Admin pulls approval while the item sits in the cart.
+    listing.approval_status = ApprovalStatus.PENDING
+    db.session.commit()
+
     created = place_orders_from_cart(buyer_user)
     assert created == []
-    assert Order.query.filter_by(listing_id=pending.id).first() is None
+    assert Order.query.filter_by(listing_id=listing.id).first() is None
 
 
 # --------------------------- simulated checkout ------------------------------

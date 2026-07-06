@@ -16,6 +16,14 @@
 </div>
 {% endif %}
 
+{% if listing.workflow_status == 'sold' %}
+<div class="alert alert-secondary">This item has been <strong>sold</strong>.</div>
+{% elif listing.workflow_status == 'rejected' %}
+<div class="alert alert-secondary">This item did not pass in-house authentication and is no longer for sale.</div>
+{% elif listing.workflow_status != 'available' %}
+<div class="alert alert-info">This item is <strong>reserved</strong> — another buyer has committed to it and it is moving through the authentication workflow.</div>
+{% endif %}
+
 <dl class="row">
     <dt class="col-sm-3">Price</dt>
     <dd class="col-sm-9">${{ '%.2f' | format(listing.price) }}</dd>
@@ -49,11 +57,15 @@
 
 {% if session.get('user_id') and listing.approval_status == 'approved' %}
 <div class="d-flex gap-2">
+    {# Add-to-cart only while the item is genuinely available — the same
+       rule is enforced server-side in cart_service/order_service (SFR-09). #}
+    {% if listing.workflow_status == 'available' %}
     <form method="post" action="{{ url_for('cart.add_to_cart') }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="hidden" name="listing_id" value="{{ listing.id }}">
         <button type="submit" class="btn btn-primary">Add to cart</button>
     </form>
+    {% endif %}
     <form method="post" action="{{ url_for('listing.report', listing_id=listing.id) }}" class="d-flex gap-2">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="text" name="reason" class="form-control"

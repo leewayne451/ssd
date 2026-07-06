@@ -37,6 +37,15 @@ def place_orders_from_cart(user) -> List[Order]:
             logger.info("skipping unavailable listing %s at checkout", listing.id)
             continue
 
+        # SFR-09 "available items": one-of-a-kind luxury goods — an item
+        # already committed to another buyer (or further along the workflow)
+        # can never be committed again.
+        item_state = getattr(listing.workflow_status, "value", listing.workflow_status)
+        if item_state != WorkflowStatus.AVAILABLE.value:
+            logger.info("skipping listing %s already in workflow state %s",
+                        listing.id, item_state)
+            continue
+
         order = Order(
             buyer_id=user.id,
             listing_id=listing.id,
@@ -44,6 +53,9 @@ def place_orders_from_cart(user) -> List[Order]:
             workflow_status=WorkflowStatus.COMMITTED,
         )
         db.session.add(order)
+        # The listing enters the same workflow: nobody else can commit to it.
+        listing.workflow_status = WorkflowStatus.COMMITTED
+        db.session.add(listing)
         db.session.flush()  # get PK
 
         # record initial workflow history: order committed

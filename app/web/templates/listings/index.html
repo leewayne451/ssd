@@ -52,9 +52,15 @@
                 <p class="card-text text-muted small mb-0">
                     {{ l.brand }} · {{ l.category }} · {{ (l.condition or '').replace('_', ' ') }}
                 </p>
-                {% set r = ratings.get(l.id) %}
+                {% set r = (ratings | default({})).get(l.id) %}
                 {% if r %}
                 <p class="card-text small mb-0">★ {{ r.avg }} <span class="text-muted">({{ r.count }} review{{ 's' if r.count != 1 }})</span></p>
+                {% endif %}
+                {% set wf = l.workflow_status | default('available') %}
+                {% if wf == 'sold' %}
+                <span class="badge text-bg-dark mt-1">Sold</span>
+                {% elif wf not in ('available', 'rejected') %}
+                <span class="badge text-bg-info mt-1">Reserved</span>
                 {% endif %}
             </div>
         </div>
@@ -62,7 +68,7 @@
     {% endfor %}
 </div>
 
-{% if pagination.pages > 1 %}
+{% if (pagination | default(none)) and pagination.pages > 1 %}
 <nav aria-label="Listings pagination" class="mt-4">
     <ul class="pagination">
         {% if pagination.has_prev %}

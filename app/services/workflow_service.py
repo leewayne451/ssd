@@ -161,6 +161,16 @@ def transition_order(order: Order, new_status: str, actor_user) -> Order:
     order.workflow_status = new_status
     db.session.add(order)
 
+    # The listing IS the item moving through D1 H-3 — mirror the state so
+    # its public availability always reflects the live order (SFR-09: a
+    # committed/sold item can never be committed again).
+    from app.models.product_listing import ProductListing
+
+    listing = db.session.get(ProductListing, order.listing_id)
+    if listing is not None:
+        listing.workflow_status = new_status
+        db.session.add(listing)
+
     history = OrderStatusHistory(
         order_id=order.id,
         actor_user_id=actor_user.id if actor_user else None,
