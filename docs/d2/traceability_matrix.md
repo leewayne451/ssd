@@ -2,7 +2,7 @@
 
 **Source:** `doc/ICT2116_P2_team31_Deliverable_One.pdf` (all requirement families, incl. Appendices A-1…A-4 and §9.3 design decisions).
 **Generated:** 4 Jul 2026. **Updated 5 Jul 2026** after the `harden/d1-conformance` iteration landed all pre-freeze fixes (M1–M6 + R1); **updated again 6 Jul 2026** after the second iteration on the same branch completed M8–M12. Companion docs: [milestone_audit_followups.md](milestone_audit_followups.md) (fix tasks), [owasp_mapping_table.md](owasp_mapping_table.md) (OWASP view of the same evidence).
-**How to verify:** `pytest -q` runs every test cited here; test refs are `file::test_name`. **Suite status: 463 passing** (354 application + 109 AI-review tooling), 0 failures.
+**How to verify:** `pytest -q` runs every test cited here; test refs are `file::test_name`. **Suite status: 470 passing** (361 application + 109 AI-review tooling), 0 failures.
 
 > **Iteration note 1 (harden/d1-conformance, 5 Jul):** the T-01…T-41 backlog in §8 and the R1 edge-hardening are **implemented** — every ⏳-code item below is now ✅.
 > **Iteration note 2 (harden/d1-conformance, 6 Jul):** the former M8–M12 descope is **fully implemented** (seller applications, reviews, shipment tracking, disputes, backup/recovery — see §8b), plus UI conformance fixes (self-hosted Bootstrap, 'self'-only CSP, role-aware navigation) and an authorization audit of every route (dev backdoor removed; profile view/edit locked to owner+admin). **No ⏸ rows remain.** The only non-✅ rows left are M7 evidence captures that require the live VM (load numbers, browser screenshots, TLS/SSH proofs — the 🏗/⏳ rows).
@@ -237,4 +237,4 @@ The former stretch/descope backlog is fully implemented. 45 new tests across fiv
 | NFSR | 21 | 9 | 1 (NFSR-20 framing) | 9 | — |
 | SDR | 19 | 12 | — | 6 | — |
 
-Current test suite: **463 tests** (354 application across unit/integration/security + 109 `tests/ai_review/` + workflow-policy guard), **0 failures**. The T-01…T-41 backlog, R1 edge-hardening, and the full M8–M12 feature set are complete; **nothing is descoped** — what remains is VM-only evidence capture (§8b "Still open").
+Current test suite: **470 tests** (361 application across unit/integration/security + 109 `tests/ai_review/` + workflow-policy guard), **0 failures**. The T-01…T-41 backlog, R1 edge-hardening, and the full M8–M12 feature set are complete; **nothing is descoped** — what remains is VM-only evidence capture (§8b "Still open").
