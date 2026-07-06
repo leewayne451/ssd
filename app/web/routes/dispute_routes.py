@@ -16,6 +16,8 @@ dispute_bp = Blueprint("dispute", __name__)
 @dispute_bp.route("/orders/<int:order_id>/dispute", methods=["POST"])
 @login_required
 def raise_dispute(order_id):
+    """Open a dispute on the caller's OWN order — ownership re-verified in dispute_service (SFR-17).
+    """
     dispute, error = dispute_service.raise_dispute(
         get_current_user(), order_id, request.form.get("reason", "")
     )
@@ -29,5 +31,6 @@ def raise_dispute(order_id):
 @dispute_bp.route("/disputes")
 @login_required
 def my_disputes():
+    """The caller's own disputes only (SFR-17)."""
     disputes = dispute_service.get_disputes_for_user(get_current_user())
     return render_template("disputes/list.html", disputes=disputes)

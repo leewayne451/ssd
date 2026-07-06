@@ -1,9 +1,19 @@
+"""User account entity (D1 H-4)."""
+
 from app.extensions import db
 from app.models.enums import UserRole, AccountStatus
 from datetime import datetime
 
 
 class User(db.Model):
+    """A platform account: credentials plus authorization state (FR-01/FR-02).
+
+    Stores only the Werkzeug password hash — never plaintext (FSR-03).
+    Carries the DB-authoritative role/status consulted by rbac on every
+    request (FSR-07), the brute-force lockout counters (FSR-05) and the
+    TOTP fields for admin 2FA (FSR-01). Personal data lives in the separate
+    Profile entity (NFR-13 data minimisation).
+    """
     __tablename__ = "users"
 
     id = db.Column(db.Integer, primary_key=True)

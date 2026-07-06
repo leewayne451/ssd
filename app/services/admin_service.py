@@ -1,10 +1,11 @@
-# admin_service — privileged platform operations (FR-12..FR-15).
-#
-# Every function here is a sensitive admin action: each writes an AuditLog row
-# with the acting administrator, timestamp (row default), action type and
-# target record (FSR-11/FSR-12/NFSR-08/SFR-13/SFR-15). Routes gate these
-# behind role_required("admin") + admin_2fa_required; the services assume an
-# already-authorised admin actor and focus on the state change + audit.
+"""admin_service — privileged platform operations (FR-12..FR-15).
+
+Every function here is a sensitive admin action: each writes an AuditLog row
+with the acting administrator, timestamp (row default), action type and
+target record (FSR-11/FSR-12/NFSR-08/SFR-13/SFR-15). Routes gate these
+behind role_required("admin") + admin_2fa_required; the services assume an
+already-authorised admin actor and focus on the state change + audit.
+"""
 import logging
 
 from app.extensions import db
@@ -41,6 +42,7 @@ def suspend_user(admin, user_id: int) -> User | None:
 
 
 def unsuspend_user(admin, user_id: int) -> User | None:
+    """Reactivate a suspended account (audited)."""
     user = db.session.get(User, user_id)
     if user is None:
         return None
@@ -71,6 +73,7 @@ def unlock_user(admin, user_id: int) -> User | None:
 # --------------------------------------------------------------------------
 
 def approve_listing(admin, listing_id: int) -> ProductListing | None:
+    """Publish a listing (FR-14): approved, report flag cleared, audited."""
     listing = db.session.get(ProductListing, listing_id)
     if listing is None:
         return None
@@ -82,6 +85,8 @@ def approve_listing(admin, listing_id: int) -> ProductListing | None:
 
 
 def reject_listing(admin, listing_id: int, reason: str = "") -> ProductListing | None:
+    """Reject and deactivate a listing; the reason lands in the audit row only, never on user-facing pages (SFR-14).
+    """
     listing = db.session.get(ProductListing, listing_id)
     if listing is None:
         return None

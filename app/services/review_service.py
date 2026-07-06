@@ -1,10 +1,11 @@
-# review_service — purchase-based reviews (FR-16 / SFR-16, D1 UC-06).
-#
-# A review may exist only for a COMPLETED purchase: the order must belong to
-# the reviewer and have finished the workflow (sold). One review per order
-# (DB-unique), rating clamped server-side to 1–5, comment length-capped.
-# Review text is stored raw and escaped on output by Jinja autoescape
-# (SDR-02) — the classic stored-XSS surface, covered by template tests.
+"""review_service — purchase-based reviews (FR-16 / SFR-16, D1 UC-06).
+
+A review may exist only for a COMPLETED purchase: the order must belong to
+the reviewer and have finished the workflow (sold). One review per order
+(DB-unique), rating clamped server-side to 1–5, comment length-capped.
+Review text is stored raw and escaped on output by Jinja autoescape
+(SDR-02) — the classic stored-XSS surface, covered by template tests.
+"""
 import logging
 
 from app.extensions import db
@@ -81,6 +82,7 @@ def get_reviews_for_listing(listing_id: int) -> list[Review]:
 
 
 def get_review_for_order(order_id: int) -> Review | None:
+    """The (single) review for an order, or None."""
     return Review.query.filter_by(order_id=order_id).first()
 
 

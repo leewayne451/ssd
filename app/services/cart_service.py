@@ -1,4 +1,9 @@
-# cart_service — business logic layer.
+"""cart_service — buyer cart operations (FR-08).
+
+Every function is scoped to the acting user's own cart (SFR-08), and only
+approved, active, still-available listings may enter a cart (SFR-09).
+"""
+
 from typing import Optional
 
 from app.extensions import db

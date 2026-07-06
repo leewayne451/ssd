@@ -1,4 +1,7 @@
-# admin_forms — WTForms validation.
+"""Admin-area forms: the TOTP code form shared by 2FA enrolment and
+verification (FSR-01).
+"""
+
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField
 from wtforms.validators import DataRequired, Length, Regexp

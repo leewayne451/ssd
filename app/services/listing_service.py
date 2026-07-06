@@ -1,3 +1,10 @@
+"""listing_service — listing catalogue logic (FR-05..07).
+
+Public queries are approval-filtered (SFR-05) and built exclusively through
+the ORM with bound parameters (SDR-03). Mutations enforce the seller-owns
+rule and an explicit field allow-list against mass assignment.
+"""
+
 from typing import List, Optional
 
 from app.extensions import db
@@ -149,6 +156,8 @@ _EDITABLE_FIELDS = {"title", "description", "price", "category", "brand", "condi
 
 
 def update_listing(listing_id: int, seller_id: int, **updates) -> Optional[dict]:
+	"""Apply allow-listed edits to the seller's OWN listing; returns the serialized listing, or None when missing or not owned.
+	"""
 	obj = db.session.get(ProductListing, listing_id)
 	if not obj or obj.seller_id != seller_id:
 		return None

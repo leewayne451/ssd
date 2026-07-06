@@ -1,3 +1,5 @@
+"""Public routes: the landing page and the /healthz liveness probe."""
+
 from flask import Blueprint, render_template
 
 public_bp = Blueprint("public", __name__)
@@ -5,11 +7,13 @@ public_bp = Blueprint("public", __name__)
 
 @public_bp.route("/")
 def index():
+    """Public landing page with role-aware quick actions."""
     return render_template("public/index.html")
 
 
 @public_bp.route("/healthz")
 def healthz():
+    """Liveness probe for containers/monitors — no auth, no data."""
     return {"status": "ok"}, 200
 
 

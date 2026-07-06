@@ -1,3 +1,7 @@
+"""Production WSGI entrypoint — Gunicorn imports `app` from here; ProxyFix
+makes Flask trust nginx's X-Forwarded-* headers (details below).
+"""
+
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from app import create_app

@@ -1,4 +1,8 @@
-# Session policy — secure cookie flags, inactivity timeout, session regeneration.
+"""Session policy (FSR-04): fixation-safe regeneration at login, activity
+timestamps, and the 30-minute inactivity timeout enforced by the
+before_request hook installed in the app factory.
+"""
+
 from flask import session, request, current_app
 from datetime import datetime, timezone, timedelta
 

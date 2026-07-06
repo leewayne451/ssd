@@ -1,14 +1,15 @@
-# backup_service — application-level backup & recovery (M12).
-#
-# D1: NFR-03 ("a database backup shall be restorable in the test environment
-# without loss of critical records"), FSR-25/26 (backup + recovery
-# functionality), SDR-10 (backup/restore testing), SDR-13 (backups live under
-# instance/, outside the web root — never URL-addressable).
-#
-# Snapshots use SQLite's online backup API through the live SQLAlchemy
-# connection, so they are consistent even mid-write — the DB file is never
-# copied raw. The host-level daily cron (deploy/scripts/backup.sh) is the
-# second, deploy-layer line of the same control.
+"""backup_service — application-level backup & recovery (M12).
+
+D1: NFR-03 ("a database backup shall be restorable in the test environment
+without loss of critical records"), FSR-25/26 (backup + recovery
+functionality), SDR-10 (backup/restore testing), SDR-13 (backups live under
+instance/, outside the web root — never URL-addressable).
+
+Snapshots use SQLite's online backup API through the live SQLAlchemy
+connection, so they are consistent even mid-write — the DB file is never
+copied raw. The host-level daily cron (deploy/scripts/backup.sh) is the
+second, deploy-layer line of the same control.
+"""
 import logging
 import re
 import sqlite3
@@ -79,6 +80,7 @@ def create_backup(admin) -> BackupRecord:
 
 
 def list_backups() -> list[BackupRecord]:
+    """All snapshot records, newest first."""
     return (
         BackupRecord.query.order_by(
             BackupRecord.created_at.desc(), BackupRecord.id.desc()

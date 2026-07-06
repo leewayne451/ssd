@@ -1,4 +1,7 @@
-# cart_forms — WTForms validation.
+"""Cart forms (FR-08). The cart routes currently validate POST fields
+directly server-side; these classes remain for form-rendered flows.
+"""
+
 from flask_wtf import FlaskForm
 from wtforms import IntegerField, SubmitField
 from wtforms.validators import DataRequired, NumberRange

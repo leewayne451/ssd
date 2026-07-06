@@ -1,7 +1,13 @@
+"""Audit log entity (FSR-11/12)."""
+
 from app.extensions import db
 
 
 class AuditLog(db.Model):
+    """Append-only record of key and privileged actions (FSR-11/FSR-12,
+    NFSR-08): actor, action type, target record, source IP, user agent.
+    The admin viewer is read-only; rows never store secrets (SDR-19).
+    """
     __tablename__ = "audit_logs"
 
     id = db.Column(db.Integer, primary_key=True)

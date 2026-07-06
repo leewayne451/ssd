@@ -1,8 +1,15 @@
+"""Seller application entity (FR-04)."""
+
 from app.extensions import db
 from app.models.enums import ApprovalStatus
 
 
 class SellerApplication(db.Model):
+    """A buyer's application to become a verified seller (FR-04).
+
+    Confidential to the applicant and admins (SFR-04); approval promotes
+    the account role server-side and records the reviewing admin (FSR-12).
+    """
     __tablename__ = "seller_applications"
 
     id = db.Column(db.Integer, primary_key=True)

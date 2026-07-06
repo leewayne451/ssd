@@ -1,3 +1,12 @@
+"""Admin surface (/admin/*) — FR-12..FR-15 plus the FR-04/FR-17 review
+queues, the security dashboard and M12 backups.
+
+EVERY view in this blueprint carries role_required("admin") +
+admin_2fa_required (D1 9.3.3 dedicated admin routes; FSR-01/SFR-12), and
+every privileged action writes an AuditLog row in its service. Keep the
+decorator pair on anything added here.
+"""
+
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 
 from app.extensions import db
@@ -141,6 +150,7 @@ def logs():
 @role_required("admin")
 @admin_2fa_required
 def users():
+    """User management list with suspension + lockout state (FR-13/FSR-05)."""
     from app.services.user_service import is_account_locked
 
     all_users = User.query.order_by(User.created_at.desc()).all()
@@ -152,6 +162,7 @@ def users():
 @role_required("admin")
 @admin_2fa_required
 def unlock_user(user_id):
+    """Clear a brute-force lockout early (audited)."""
     admin = get_current_user()
     if admin_service.unlock_user(admin, user_id) is None:
         flash("User not found.", "danger")
@@ -164,6 +175,7 @@ def unlock_user(user_id):
 @role_required("admin")
 @admin_2fa_required
 def suspend_user(user_id):
+    """Suspend an account; rbac enforces it on the next request (FR-13)."""
     admin = get_current_user()
     if admin_service.suspend_user(admin, user_id) is None:
         flash("User not found.", "danger")
@@ -176,6 +188,7 @@ def suspend_user(user_id):
 @role_required("admin")
 @admin_2fa_required
 def unsuspend_user(user_id):
+    """Reactivate a suspended account (audited)."""
     admin = get_current_user()
     if admin_service.unsuspend_user(admin, user_id) is None:
         flash("User not found.", "danger")
@@ -190,6 +203,7 @@ def unsuspend_user(user_id):
 @role_required("admin")
 @admin_2fa_required
 def listings():
+    """Moderation queues: pending approvals + buyer-reported listings (FR-14)."""
     pending = ProductListing.query.filter_by(approval_status=ApprovalStatus.PENDING).all()
     reported = ProductListing.query.filter_by(reported=True).all()
     return render_template("admin/listings.html", pending=pending, reported=reported)
@@ -199,6 +213,7 @@ def listings():
 @role_required("admin")
 @admin_2fa_required
 def approve_listing(listing_id):
+    """Approve a pending listing (audited)."""
     admin = get_current_user()
     if admin_service.approve_listing(admin, listing_id) is None:
         flash("Listing not found.", "danger")
@@ -211,6 +226,7 @@ def approve_listing(listing_id):
 @role_required("admin")
 @admin_2fa_required
 def reject_listing(listing_id):
+    """Reject a listing with an internal reason (audited, SFR-14)."""
     admin = get_current_user()
     reason = request.form.get("reason", "")
     if admin_service.reject_listing(admin, listing_id, reason) is None:
@@ -226,6 +242,7 @@ def reject_listing(listing_id):
 @role_required("admin")
 @admin_2fa_required
 def seller_applications():
+    """Pending seller applications queue (FR-04/SFR-04)."""
     pending = seller_service.list_pending_applications()
     return render_template("admin/seller_applications.html", pending=pending)
 
@@ -234,6 +251,7 @@ def seller_applications():
 @role_required("admin")
 @admin_2fa_required
 def approve_seller_application(application_id):
+    """Approve and promote the applicant to seller (audited)."""
     admin = get_current_user()
     try:
         seller_service.approve_application(admin, application_id)
@@ -247,6 +265,7 @@ def approve_seller_application(application_id):
 @role_required("admin")
 @admin_2fa_required
 def reject_seller_application(application_id):
+    """Reject a pending application (audited)."""
     admin = get_current_user()
     try:
         seller_service.reject_application(admin, application_id)
@@ -262,6 +281,7 @@ def reject_seller_application(application_id):
 @role_required("admin")
 @admin_2fa_required
 def backups():
+    """Snapshot list with create/restore controls (NFR-03/FSR-25/26)."""
     return render_template("admin/backups.html", backups=backup_service.list_backups())
 
 
@@ -269,6 +289,7 @@ def backups():
 @role_required("admin")
 @admin_2fa_required
 def create_backup():
+    """Take a consistent snapshot via the SQLite online backup API."""
     record = backup_service.create_backup(get_current_user())
     flash(f"Backup created: {record.filename}", "success")
     return redirect(url_for("admin.backups"))
@@ -278,6 +299,7 @@ def create_backup():
 @role_required("admin")
 @admin_2fa_required
 def restore_backup():
+    """Restore from a validated, server-named snapshot (audited)."""
     try:
         record = backup_service.restore_backup(
             get_current_user(), request.form.get("filename", "")
@@ -294,6 +316,7 @@ def restore_backup():
 @role_required("admin")
 @admin_2fa_required
 def orders():
+    """Authentication queue + recent orders with workflow and refund controls (FR-15)."""
     from app.models.authentication_review import AuthenticationReview
     from app.services.workflow_service import ALLOWED_TRANSITIONS
 
@@ -349,6 +372,7 @@ def refund_order(order_id):
 @role_required("admin")
 @admin_2fa_required
 def update_order_status(order_id):
+    """Manual workflow transition through the audited state machine (FR-15)."""
     admin = get_current_user()
     new_status = request.form.get("new_status", "")
     if new_status not in _VALID_WORKFLOW_VALUES:
@@ -368,6 +392,7 @@ def update_order_status(order_id):
 @role_required("admin")
 @admin_2fa_required
 def disputes():
+    """Open dispute queue plus recently-closed history (FR-17)."""
     return render_template(
         "admin/disputes.html",
         open_disputes=dispute_service.list_open_disputes(),
@@ -379,6 +404,7 @@ def disputes():
 @role_required("admin")
 @admin_2fa_required
 def resolve_dispute(dispute_id):
+    """Close a dispute as resolved/dismissed with notes (audited, FSR-10)."""
     admin = get_current_user()
     outcome = request.form.get("outcome", "")
     notes = request.form.get("notes", "")

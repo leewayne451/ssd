@@ -1,3 +1,8 @@
+"""Authentication routes (FR-01/FR-02): register, login, logout.
+All policy — password strength, lockout, generic errors, session
+regeneration, audit — lives in auth_service; these views translate HTTP.
+"""
+
 from flask import Blueprint, render_template, redirect, url_for, flash, request, session
 from app.web.forms.auth_forms import RegistrationForm, LoginForm
 from app.services.auth_service import register_user, login_user, logout_user, get_current_user
@@ -6,6 +11,7 @@ auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
 
 @auth_bp.route('/register', methods=['GET', 'POST'])
 def register():
+    """Create an account + profile; validation errors re-render the form."""
     form = RegistrationForm()
     if form.validate_on_submit():
         user, error = register_user(
@@ -23,6 +29,8 @@ def register():
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
+    """Authenticate and establish the session; every failure shows one generic message (no account enumeration).
+    """
     form = LoginForm()
     if form.validate_on_submit():
         user, error = login_user(form.email.data, form.password.data)
@@ -36,6 +44,7 @@ def login():
 
 @auth_bp.route('/logout')
 def logout():
+    """Clear the session and audit the logout."""
     logout_user()
     flash('You have been logged out.', 'info')
     return redirect(url_for('public.index'))

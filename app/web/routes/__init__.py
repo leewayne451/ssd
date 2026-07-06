@@ -1,3 +1,7 @@
+"""Route registration: attaches every blueprint of the web layer plus the
+error handlers and small template helpers to the app.
+"""
+
 from .public_routes import public_bp
 from .auth_routes import auth_bp
 from .profile_routes import profile_bp
@@ -14,6 +18,7 @@ from .error_routes import register_error_handlers
 
 
 def register_routes(app):
+    """Register all blueprints, template helpers and error handlers on `app`."""
     app.register_blueprint(public_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(profile_bp)

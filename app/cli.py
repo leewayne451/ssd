@@ -99,4 +99,5 @@ def seed_admin(email: str, password: str, promote: bool):
 
 
 def register_cli(app):
+    """Attach the operational commands to the Flask CLI."""
     app.cli.add_command(seed_admin)

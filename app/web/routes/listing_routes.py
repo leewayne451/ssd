@@ -1,3 +1,8 @@
+"""Listing routes (FR-05..07): public browse/search (approval-filtered,
+ORM-only, paginated), safe media serving (server-generated names only),
+seller create/edit (role + ownership gated) and buyer reporting.
+"""
+
 import os
 import re
 from pathlib import Path
@@ -195,6 +200,7 @@ def _validated_listing_fields(form):
 @listing_bp.route("/seller/listings/create", methods=("GET", "POST"))
 @role_required("seller")
 def create():
+	"""Create a listing (seller-only); starts PENDING until admin approval (SFR-05)."""
 	if request.method == "POST":
 		fields, errors = _validated_listing_fields(request.form)
 		if errors:
@@ -235,6 +241,7 @@ def create():
 @listing_bp.route("/seller/listings/<int:listing_id>/edit", methods=("GET", "POST"))
 @role_required("seller")
 def edit(listing_id):
+	"""Edit an OWN listing — ownership asserted, allow-listed fields only (SFR-07)."""
 	listing = get_listing_by_id(listing_id)
 	if not listing:
 		abort(404)

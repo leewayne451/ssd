@@ -1,1 +1,1 @@
-# Security package — edge protection, RBAC, session policy, input validation.
+"""Security package — edge protection, RBAC, session policy, input validation."""

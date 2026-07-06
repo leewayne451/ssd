@@ -1,1 +1,1 @@
-# Repositories package — database query abstraction layer.
+"""Repositories package — database query abstraction layer."""

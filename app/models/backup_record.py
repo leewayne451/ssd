@@ -1,7 +1,12 @@
+"""Backup snapshot metadata entity (M12)."""
+
 from app.extensions import db
 
 
 class BackupRecord(db.Model):
+    """Metadata for a database snapshot created by backup_service (M12,
+    NFR-03/FSR-25): server-generated filename, size, type, acting admin.
+    """
     __tablename__ = "backup_records"
 
     id = db.Column(db.Integer, primary_key=True)

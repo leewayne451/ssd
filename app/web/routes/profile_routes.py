@@ -1,3 +1,8 @@
+"""Profile routes (FR-03 / SFR-03): own-only view/edit (admins may view).
+Ownership is checked BEFORE any lookup so non-owners learn nothing about a
+profile's existence (NFSR-01/02).
+"""
+
 from flask import Blueprint, render_template, redirect, url_for, flash, request, abort
 
 from app.security.rbac import login_required

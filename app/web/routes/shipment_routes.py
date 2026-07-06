@@ -17,6 +17,7 @@ shipment_bp = Blueprint("shipment", __name__)
 @shipment_bp.route("/orders/<int:order_id>/shipment", methods=["POST"])
 @role_required("seller")
 def mark_shipped(order_id):
+    """Record tracking and move the seller's OWN order awaiting_shipment -> shipped (audited)."""
     try:
         shipment_service.mark_shipped(
             get_current_user(), order_id, request.form.get("tracking_number", "")

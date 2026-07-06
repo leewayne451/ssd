@@ -1,9 +1,10 @@
-# dispute_service — dispute lifecycle (FR-17 / SFR-17, D1 UC-06).
-#
-# A buyer raises a dispute only for their OWN order; administrators review
-# and record the outcome (resolved / dismissed) with notes. Buyers see only
-# their own disputes; every admin decision writes an AuditLog row
-# (FSR-10/11/12, NFSR-08).
+"""dispute_service — dispute lifecycle (FR-17 / SFR-17, D1 UC-06).
+
+A buyer raises a dispute only for their OWN order; administrators review
+and record the outcome (resolved / dismissed) with notes. Buyers see only
+their own disputes; every admin decision writes an AuditLog row
+(FSR-10/11/12, NFSR-08).
+"""
 import logging
 from datetime import datetime, timezone
 
@@ -73,6 +74,7 @@ def get_disputes_for_user(user) -> list[Dispute]:
 
 
 def get_dispute_for_order(order_id: int) -> Dispute | None:
+    """Latest dispute for an order — drives the buyer order page widget."""
     return (
         Dispute.query.filter_by(order_id=order_id)
         .order_by(Dispute.created_at.desc(), Dispute.id.desc())

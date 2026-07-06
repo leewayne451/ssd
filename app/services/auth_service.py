@@ -1,3 +1,12 @@
+"""auth_service — registration, login/logout and request identity (FR-01/02).
+
+Enforces the password policy at registration, one generic error for every
+credential failure (no account enumeration), progressive lockout (FSR-05),
+suspended-account denial (FR-13), session regeneration against fixation,
+and audits every auth event (FSR-13). get_current_user() is the single
+request-identity accessor, delegating to rbac's fail-closed loader.
+"""
+
 from datetime import datetime, timezone
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask import session, request

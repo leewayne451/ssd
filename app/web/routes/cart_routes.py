@@ -1,3 +1,7 @@
+"""Cart routes (FR-08): login-gated, scoped to the caller's own cart in
+cart_service (SFR-08); item availability enforced server-side (SFR-09).
+"""
+
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for
 
 from app.extensions import db

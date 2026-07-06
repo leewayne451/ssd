@@ -1,3 +1,8 @@
+"""Order routes (FR-09/FR-11): commitment from the caller's own cart,
+own-order list/detail (IDOR-guarded via require_order_buyer), the workflow
+transition endpoint, and simulated checkout (server-controlled payment).
+"""
+
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for
 
 from app.extensions import db

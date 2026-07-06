@@ -1,8 +1,17 @@
+"""Product listing entity (FR-05..07)."""
+
 from app.extensions import db
 from app.models.enums import ApprovalStatus, ListingCondition, WorkflowStatus
 
 
 class ProductListing(db.Model):
+    """A luxury item for sale (FR-05..07).
+
+    approval_status gates public visibility — hidden until admin approval
+    (SFR-05). workflow_status mirrors the item through the D1 H-3 lifecycle
+    so a committed/sold one-of-a-kind piece can never be committed twice
+    (SFR-09). reported/report_reason feed the moderation queue (FR-14).
+    """
     __tablename__ = "product_listings"
 
     id = db.Column(db.Integer, primary_key=True)

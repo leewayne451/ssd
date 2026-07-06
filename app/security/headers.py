@@ -1,4 +1,13 @@
+"""Security response headers on every response (FSR-20 / D1 9.3.7).
+
+CSP is locked to 'self' for scripts/styles/fonts (Bootstrap is self-hosted;
+no inline script or style executes), plus clickjacking and MIME-sniffing
+defences, referrer policy, and HSTS only when the app is HTTPS-configured.
+"""
+
 def apply_security_headers(app):
+    """Register the after_request hook that stamps the security headers onto every response, error pages included.
+    """
     @app.after_request
     def set_headers(response):
         response.headers["X-Content-Type-Options"] = "nosniff"

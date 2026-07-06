@@ -1,9 +1,10 @@
-# shipment_service — seller shipment updates + tracking (FR-10, D1 UC-05).
-#
-# Sellers move their own orders awaiting_shipment -> shipped and attach a
-# tracking reference; buyers see the tracking on their order page. Ownership
-# is enforced twice: here (fail fast, clear error) and again inside the
-# workflow state machine that performs the audited transition (SFR-10).
+"""shipment_service — seller shipment updates + tracking (FR-10, D1 UC-05).
+
+Sellers move their own orders awaiting_shipment -> shipped and attach a
+tracking reference; buyers see the tracking on their order page. Ownership
+is enforced twice: here (fail fast, clear error) and again inside the
+workflow state machine that performs the audited transition (SFR-10).
+"""
 import logging
 from datetime import datetime, timezone
 
@@ -20,6 +21,7 @@ MAX_TRACKING_LENGTH = 100
 
 
 def get_shipment_for_order(order_id: int) -> Shipment | None:
+    """The shipment row for an order, or None (unique per order)."""
     return Shipment.query.filter_by(order_id=order_id).first()
 
 

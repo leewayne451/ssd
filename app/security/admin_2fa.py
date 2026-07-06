@@ -118,10 +118,12 @@ def mark_verified():
 
 
 def is_verified() -> bool:
+    """True when this session has already passed a TOTP check."""
     return bool(session.get(SESSION_2FA_FLAG))
 
 
 def clear_verified():
+    """Drop the session's 2FA flag (used at logout/re-verification)."""
     session.pop(SESSION_2FA_FLAG, None)
 
 

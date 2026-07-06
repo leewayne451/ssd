@@ -1,4 +1,11 @@
-# order_service — business logic layer.
+"""order_service — purchase commitment (FR-09).
+
+Orders are created from the caller's own cart at the server-side listing
+price (D1 9.3.1); unapproved or no-longer-available items are skipped, and
+the listing is flipped to 'committed' in the same unit of work so a
+one-of-a-kind item can never be committed twice (SFR-09).
+"""
+
 import logging
 from typing import List
 

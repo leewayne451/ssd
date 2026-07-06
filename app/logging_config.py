@@ -1,3 +1,11 @@
+"""Logging configuration (NFR-11 observability).
+
+Production gets rotating file handlers under $LOG_DIR — the general app log
+plus dedicated audit/security streams that complement the AuditLog and
+SecurityEvent database records; debug/testing log to stderr. Sizes and
+backup counts are capped so logs cannot fill the disk.
+"""
+
 import logging
 import os
 import sys
@@ -5,6 +13,7 @@ from logging.handlers import RotatingFileHandler
 
 
 def configure_logging(app):
+    """Attach environment-appropriate log handlers to `app`."""
     log_level = logging.DEBUG if app.debug else logging.INFO
 
     formatter = logging.Formatter(

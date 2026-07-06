@@ -1,3 +1,7 @@
+"""Development entrypoint: `python manage.py` runs the Flask dev server
+(honours a supervisor-assigned PORT). Production uses wsgi.py + Gunicorn.
+"""
+
 import os
 
 from app import create_app

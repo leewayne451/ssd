@@ -1,7 +1,10 @@
+"""Cart entity (FR-08)."""
+
 from app.extensions import db
 
 
 class Cart(db.Model):
+    """A buyer's private cart — one per account (FR-08/SFR-08)."""
     __tablename__ = "carts"
 
     id = db.Column(db.Integer, primary_key=True)

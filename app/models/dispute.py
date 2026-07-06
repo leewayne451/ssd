@@ -1,8 +1,13 @@
+"""Dispute entity (FR-17)."""
+
 from app.extensions import db
 from app.models.enums import DisputeStatus
 
 
 class Dispute(db.Model):
+    """A buyer-raised dispute on their own order (FR-17/SFR-17), closed by
+    an admin with an outcome and resolution notes.
+    """
     __tablename__ = "disputes"
 
     id = db.Column(db.Integer, primary_key=True)

@@ -1,15 +1,16 @@
-# workflow_service — server-side order workflow state machine (D1 §9.4 / H-3).
-#
-# The transition map below is the EXACT flow from Deliverable One:
-#
-#   Committed -> Awaiting Shipment -> Shipped -> Under Authentication
-#       -> Authenticated -> Sold        (buyer completes simulated checkout)
-#       -> Rejected                     (admin rejects authentication)
-#
-# There is deliberately NO shipped -> sold edge: an order can never complete
-# without passing the in-house authentication step — that is the platform's
-# core control. Client-submitted workflow values are never trusted; every
-# transition is validated here (state, role, ownership) and audited.
+"""workflow_service — server-side order workflow state machine (D1 §9.4 / H-3).
+
+The transition map below is the EXACT flow from Deliverable One:
+
+  Committed -> Awaiting Shipment -> Shipped -> Under Authentication
+      -> Authenticated -> Sold        (buyer completes simulated checkout)
+      -> Rejected                     (admin rejects authentication)
+
+There is deliberately NO shipped -> sold edge: an order can never complete
+without passing the in-house authentication step — that is the platform's
+core control. Client-submitted workflow values are never trusted; every
+transition is validated here (state, role, ownership) and audited.
+"""
 import logging
 from typing import Dict
 

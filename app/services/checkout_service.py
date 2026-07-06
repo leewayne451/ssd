@@ -1,10 +1,11 @@
-# checkout_service — simulated checkout and server-controlled payment states.
-#
-# D1 §9.3.4: payment is simulated through server-controlled state transitions
-#   Pending -> Paid | Failed;  Paid -> Refunded
-# The buyer can only INITIATE a payment; the server decides the resulting
-# status. No client-supplied payment_status / price / order_status value is
-# ever read. No real card data exists anywhere in the system (FSR-17).
+"""checkout_service — simulated checkout and server-controlled payment states.
+
+D1 §9.3.4: payment is simulated through server-controlled state transitions
+  Pending -> Paid | Failed;  Paid -> Refunded
+The buyer can only INITIATE a payment; the server decides the resulting
+status. No client-supplied payment_status / price / order_status value is
+ever read. No real card data exists anywhere in the system (FSR-17).
+"""
 import logging
 from typing import Dict
 
@@ -26,6 +27,7 @@ PAYMENT_TRANSITIONS: Dict[str, set] = {
 
 
 def can_transition_payment(old: str, new: str) -> bool:
+    """True when the payment state machine allows old -> new."""
     return new in PAYMENT_TRANSITIONS.get(old, set())
 
 

@@ -1,4 +1,10 @@
-# audit_service — business logic layer.
+"""audit_service — the AuditLog write path (FSR-11/FSR-12).
+
+record() writes one row and NEVER raises: a broken audit call must not take
+down the route that performed the action. Secrets, tokens and passwords are
+never placed in the details field (SDR-19).
+"""
+
 from flask import request
 from app.extensions import db
 from app.models.audit_log import AuditLog

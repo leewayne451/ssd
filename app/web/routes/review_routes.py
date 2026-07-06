@@ -18,6 +18,7 @@ review_bp = Blueprint("review", __name__)
 @review_bp.route("/orders/<int:order_id>/review", methods=["POST"])
 @login_required
 def submit(order_id):
+    """Submit a purchase-gated review; eligibility decided entirely in review_service (SFR-16)."""
     review, error = review_service.create_review(
         get_current_user(),
         order_id,

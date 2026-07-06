@@ -1,10 +1,11 @@
-# seller_service — seller application lifecycle (FR-04 / SFR-04, D1 UC-02).
-#
-# A registered buyer applies to become a verified seller; an administrator
-# reviews the application and approves (promoting the account to the seller
-# role) or rejects it. Application details are confidential: services expose
-# them only per-applicant or to the admin queue, and the routes gate those
-# surfaces with ownership / role+2FA checks (SFR-04).
+"""seller_service — seller application lifecycle (FR-04 / SFR-04, D1 UC-02).
+
+A registered buyer applies to become a verified seller; an administrator
+reviews the application and approves (promoting the account to the seller
+role) or rejects it. Application details are confidential: services expose
+them only per-applicant or to the admin queue, and the routes gate those
+surfaces with ownership / role+2FA checks (SFR-04).
+"""
 import logging
 from datetime import datetime, timezone
 

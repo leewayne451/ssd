@@ -1,3 +1,12 @@
+"""Château Collective — Flask application factory.
+
+create_app() wires the D1 layers together: env-driven configuration
+(app/config.py), persistence (SQLAlchemy + Flask-Migrate), the security
+cross-cuts (headers/CSP, CSRF, session inactivity timeout), the audit and
+security log streams, the web layer (blueprints under app/web/routes) and
+the operational CLI (flask seed-admin).
+"""
+
 import os
 from flask import Flask, request, flash, redirect, url_for, session
 
@@ -7,6 +16,8 @@ from .config import config_map
 
 
 def create_app(config_name=None):
+    """Build and configure the app for `config_name` (development / testing / production; defaults to $FLASK_ENV).
+    """
     app = Flask(
         __name__,
         instance_relative_config=True,

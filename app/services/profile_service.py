@@ -1,3 +1,7 @@
+"""profile_service — Profile CRUD with input sanitisation (FR-03).
+Ownership is enforced by the calling routes (SFR-03).
+"""
+
 from datetime import datetime, timezone
 from app.extensions import db
 from app.models.profile import Profile
