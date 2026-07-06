@@ -64,8 +64,23 @@ def logs():
 @role_required("admin")
 @admin_2fa_required
 def users():
+    from app.services.user_service import is_account_locked
+
     all_users = User.query.order_by(User.created_at.desc()).all()
-    return render_template("admin/users.html", users=all_users)
+    locked_ids = {u.id for u in all_users if is_account_locked(u)}
+    return render_template("admin/users.html", users=all_users, locked_ids=locked_ids)
+
+
+@admin_bp.route("/users/<int:user_id>/unlock", methods=["POST"])
+@role_required("admin")
+@admin_2fa_required
+def unlock_user(user_id):
+    admin = get_current_user()
+    if admin_service.unlock_user(admin, user_id) is None:
+        flash("User not found.", "danger")
+    else:
+        flash("Account lockout cleared.", "success")
+    return redirect(url_for("admin.users"))
 
 
 @admin_bp.route("/users/<int:user_id>/suspend", methods=["POST"])

@@ -50,6 +50,22 @@ def unsuspend_user(admin, user_id: int) -> User | None:
     return user
 
 
+def unlock_user(admin, user_id: int) -> User | None:
+    """Clear a brute-force lockout early (FSR-05 operator control).
+
+    Lockouts otherwise expire only by clock; this gives admins a way to
+    release a legitimate user who locked themselves out. Audited like every
+    account-state change (FSR-11/12)."""
+    user = db.session.get(User, user_id)
+    if user is None:
+        return None
+    user.failed_login_attempts = 0
+    user.locked_until = None
+    db.session.commit()
+    audit_record(admin, "user_unlocked", "user", user.id)
+    return user
+
+
 # --------------------------------------------------------------------------
 # FR-14 — listing monitoring / approval
 # --------------------------------------------------------------------------
