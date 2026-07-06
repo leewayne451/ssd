@@ -60,6 +60,9 @@
                         <li class="nav-item">
                             <a class="nav-link" href="{{ url_for('order.list_orders') }}">My orders</a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('dispute.my_disputes') }}">My disputes</a>
+                        </li>
                     {% endif %}
                     {% if role == 'buyer' %}
                         <li class="nav-item">

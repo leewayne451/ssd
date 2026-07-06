@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Admin · Disputes — Château Collective{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-4">Dispute queue</h1>
+
+{% if open_disputes %}
+<table class="table align-middle">
+    <thead>
+        <tr>
+            <th scope="col">ID</th>
+            <th scope="col">Order</th>
+            <th scope="col">Buyer</th>
+            <th scope="col">Reason</th>
+            <th scope="col">Raised</th>
+            <th scope="col">Decision</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for d in open_disputes %}
+        <tr>
+            <td>{{ d.id }}</td>
+            <td>#{{ d.order_id }}</td>
+            <td>#{{ d.buyer_id }}</td>
+            <td class="text-break" style="max-width: 24rem;">{{ d.reason }}</td>
+            <td>{{ d.created_at.strftime('%Y-%m-%d %H:%M') if d.created_at else '—' }}</td>
+            <td>
+                <form method="post" action="{{ url_for('admin.resolve_dispute', dispute_id=d.id) }}"
+                      class="d-flex flex-column gap-2" style="min-width: 16rem;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="text" class="form-control form-control-sm" name="notes"
+                           placeholder="Resolution notes" maxlength="2000">
+                    <div class="d-flex gap-2">
+                        <button type="submit" name="outcome" value="resolved"
+                                class="btn btn-sm btn-outline-success">Resolve</button>
+                        <button type="submit" name="outcome" value="dismissed"
+                                class="btn btn-sm btn-outline-secondary">Dismiss</button>
+                    </div>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>No open disputes.</p>
+{% endif %}
+
+<a class="btn btn-outline-secondary" href="{{ url_for('admin.index') }}">Back to admin</a>
+{% endblock %}

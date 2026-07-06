@@ -8,7 +8,7 @@ from app.models.user import User
 from app.models.product_listing import ProductListing
 from app.models.order import Order
 from app.models.enums import ApprovalStatus, WorkflowStatus
-from app.services import admin_service, seller_service
+from app.services import admin_service, dispute_service, seller_service
 from app.services.auth_service import get_current_user
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
@@ -191,6 +191,31 @@ def update_order_status(order_id):
     except (ValueError, PermissionError) as e:
         flash(str(e), "danger")
     return redirect(url_for("admin.orders"))
+
+
+# --- FR-17 / SFR-17: dispute resolution ------------------------------------
+
+@admin_bp.route("/disputes")
+@role_required("admin")
+@admin_2fa_required
+def disputes():
+    open_disputes = dispute_service.list_open_disputes()
+    return render_template("admin/disputes.html", open_disputes=open_disputes)
+
+
+@admin_bp.route("/disputes/<int:dispute_id>/resolve", methods=["POST"])
+@role_required("admin")
+@admin_2fa_required
+def resolve_dispute(dispute_id):
+    admin = get_current_user()
+    outcome = request.form.get("outcome", "")
+    notes = request.form.get("notes", "")
+    try:
+        dispute_service.resolve_dispute(admin, dispute_id, outcome, notes)
+        flash(f"Dispute {outcome}.", "success")
+    except ValueError as e:
+        flash(str(e), "danger")
+    return redirect(url_for("admin.disputes"))
 
 
 @admin_bp.route("/orders/<int:order_id>/authenticate", methods=["POST"])

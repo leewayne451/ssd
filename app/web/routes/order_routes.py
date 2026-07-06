@@ -57,7 +57,7 @@ def order_detail(order_id):
     # IDOR protection: only the buyer may view their own order (404/403 inside)
     require_order_buyer(order, current_user)
 
-    from app.services import review_service, shipment_service
+    from app.services import dispute_service, review_service, shipment_service
 
     return render_template(
         "orders/detail.html",
@@ -65,6 +65,7 @@ def order_detail(order_id):
         can_review=review_service.can_review(current_user, order),
         review=review_service.get_review_for_order(order.id),
         shipment=shipment_service.get_shipment_for_order(order.id),
+        dispute=dispute_service.get_dispute_for_order(order.id),
     )
 
 
