@@ -16,20 +16,21 @@ def _serialize_listing(obj) -> dict:
 		"condition": getattr(getattr(obj, "condition", None), "value", getattr(obj, "condition", None)),
 		"price": float(obj.price) if getattr(obj, "price", None) is not None else None,
 		"approval_status": getattr(getattr(obj, "approval_status", None), "value", getattr(obj, "approval_status", None)),
+		"workflow_status": getattr(getattr(obj, "workflow_status", None), "value", getattr(obj, "workflow_status", None)),
 		"is_active": getattr(obj, "is_active", True),
 		"created_at": getattr(obj, "created_at", None),
 	}
 
 
-def get_public_listings(
+def _public_query(
 	q: Optional[str] = None,
 	category: Optional[str] = None,
 	brand: Optional[str] = None,
 	condition: Optional[str] = None,
 	min_price: Optional[float] = None,
 	max_price: Optional[float] = None,
-) -> List[dict]:
-	"""Return active, ADMIN-APPROVED listings for the public index (FR-05/06).
+):
+	"""Shared filter builder for the public index (FR-05/06).
 
 	Pending/rejected listings never appear here — D1: second-hand items stay
 	hidden until admin approval (SFR-05 / TRACE-003). All filtering happens
@@ -57,8 +58,54 @@ def get_public_listings(
 	if max_price is not None:
 		query = query.filter(ProductListing.price <= max_price)
 
-	results = query.order_by(ProductListing.created_at.desc()).limit(100).all()
+	return query.order_by(ProductListing.created_at.desc(), ProductListing.id.desc())
+
+
+def get_public_listings(
+	q: Optional[str] = None,
+	category: Optional[str] = None,
+	brand: Optional[str] = None,
+	condition: Optional[str] = None,
+	min_price: Optional[float] = None,
+	max_price: Optional[float] = None,
+) -> List[dict]:
+	"""Unpaginated view of the public index (kept for service-level callers
+	and tests; the HTTP index uses get_public_listings_page)."""
+	results = _public_query(q, category, brand, condition, min_price, max_price).limit(100).all()
 	return [_serialize_listing(r) for r in results]
+
+
+def get_public_listings_page(
+	q: Optional[str] = None,
+	category: Optional[str] = None,
+	brand: Optional[str] = None,
+	condition: Optional[str] = None,
+	min_price: Optional[float] = None,
+	max_price: Optional[float] = None,
+	page: int = 1,
+	per_page: int = 12,
+) -> dict:
+	"""Paginated public index (NFR-10: stays usable at 1,000+ listings).
+
+	`page` is clamped server-side; out-of-range pages return empty items
+	rather than erroring (error_out=False)."""
+	try:
+		page = max(1, int(page or 1))
+	except (TypeError, ValueError):
+		page = 1
+	pagination = _public_query(
+		q, category, brand, condition, min_price, max_price
+	).paginate(page=page, per_page=per_page, error_out=False)
+	return {
+		"items": [_serialize_listing(r) for r in pagination.items],
+		"page": pagination.page,
+		"pages": pagination.pages,
+		"total": pagination.total,
+		"has_prev": pagination.has_prev,
+		"has_next": pagination.has_next,
+		"prev_num": pagination.prev_num,
+		"next_num": pagination.next_num,
+	}
 
 
 def get_listing_by_id(listing_id: int) -> Optional[dict]:

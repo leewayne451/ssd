@@ -24,7 +24,7 @@ from app.services.auth_service import get_current_user
 from app.services.listing_service import (
 	create_listing,
 	get_listing_by_id,
-	get_public_listings,
+	get_public_listings_page,
 	update_listing,
 )
 
@@ -58,18 +58,38 @@ def index():
 		condition = None
 	min_price = request.args.get("min_price", None, type=float)
 	max_price = request.args.get("max_price", None, type=float)
+	page = request.args.get("page", 1, type=int)
 
-	listings = get_public_listings(
+	result = get_public_listings_page(
 		q=q or None,
 		category=category or None,
 		brand=brand or None,
 		condition=condition,
 		min_price=min_price,
 		max_price=max_price,
+		page=page,
 	)
+
+	from app.services.review_service import get_rating_summaries
+
+	ratings = get_rating_summaries([l["id"] for l in result["items"]])
+
+	# Filter args echoed into pagination links (None/empty dropped so URLs
+	# stay clean); every value was validated/coerced above.
+	filter_args = {
+		key: value
+		for key, value in {
+			"q": q, "category": category, "brand": brand,
+			"condition": condition, "min_price": min_price, "max_price": max_price,
+		}.items()
+		if value not in (None, "")
+	}
 	return render_template(
 		"listings/index.html",
-		listings=listings,
+		listings=result["items"],
+		pagination=result,
+		ratings=ratings,
+		filter_args=filter_args,
 		filters={
 			"q": q, "category": category, "brand": brand,
 			"condition": condition or "", "min_price": min_price, "max_price": max_price,
@@ -95,12 +115,14 @@ def detail(listing_id):
 	if listing["approval_status"] != "approved" and not (is_owner or is_admin):
 		abort(404)
 
-	from app.services.review_service import get_reviews_for_listing
+	from app.services.review_service import get_rating_summaries, get_reviews_for_listing
 
 	images = UploadedFile.query.filter_by(listing_id=listing_id).all()
 	reviews = get_reviews_for_listing(listing_id)
+	rating = get_rating_summaries([listing_id]).get(listing_id)
 	return render_template(
-		"listings/detail.html", listing=listing, images=images, reviews=reviews
+		"listings/detail.html",
+		listing=listing, images=images, reviews=reviews, rating=rating,
 	)
 
 

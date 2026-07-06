@@ -52,11 +52,35 @@
                 <p class="card-text text-muted small mb-0">
                     {{ l.brand }} · {{ l.category }} · {{ (l.condition or '').replace('_', ' ') }}
                 </p>
+                {% set r = ratings.get(l.id) %}
+                {% if r %}
+                <p class="card-text small mb-0">★ {{ r.avg }} <span class="text-muted">({{ r.count }} review{{ 's' if r.count != 1 }})</span></p>
+                {% endif %}
             </div>
         </div>
     </div>
     {% endfor %}
 </div>
+
+{% if pagination.pages > 1 %}
+<nav aria-label="Listings pagination" class="mt-4">
+    <ul class="pagination">
+        {% if pagination.has_prev %}
+        <li class="page-item">
+            <a class="page-link" href="{{ url_for('listing.index', page=pagination.prev_num, **filter_args) }}">Previous</a>
+        </li>
+        {% endif %}
+        <li class="page-item disabled">
+            <span class="page-link">Page {{ pagination.page }} of {{ pagination.pages }} ({{ pagination.total }} listings)</span>
+        </li>
+        {% if pagination.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="{{ url_for('listing.index', page=pagination.next_num, **filter_args) }}">Next</a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
 {% else %}
 <p>No listings match your search.</p>
 {% endif %}

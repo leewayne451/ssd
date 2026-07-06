@@ -84,6 +84,28 @@ def get_review_for_order(order_id: int) -> Review | None:
     return Review.query.filter_by(order_id=order_id).first()
 
 
+def get_rating_summaries(listing_ids) -> dict:
+    """{listing_id: {"avg": 4.5, "count": 3}} in one grouped query — used by
+    the listing index/detail pages to show aggregate ratings (FR-16)."""
+    ids = [i for i in listing_ids if i is not None]
+    if not ids:
+        return {}
+    rows = (
+        db.session.query(
+            Review.listing_id,
+            db.func.avg(Review.rating),
+            db.func.count(Review.id),
+        )
+        .filter(Review.listing_id.in_(ids))
+        .group_by(Review.listing_id)
+        .all()
+    )
+    return {
+        listing_id: {"avg": round(float(avg), 1), "count": count}
+        for listing_id, avg, count in rows
+    }
+
+
 def can_review(user, order) -> bool:
     """True when the order-detail page should offer the review form."""
     if user is None or order is None or order.buyer_id != user.id:

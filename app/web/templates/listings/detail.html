@@ -3,7 +3,12 @@
 {% block title %}{{ listing.title }} — Château Collective{% endblock %}
 
 {% block content %}
-<h1 class="h3 mb-3">{{ listing.title }}</h1>
+<h1 class="h3 mb-1">{{ listing.title }}</h1>
+{% if rating %}
+<p class="mb-3">★ {{ rating.avg }} <span class="text-muted">({{ rating.count }} verified review{{ 's' if rating.count != 1 }})</span></p>
+{% else %}
+<p class="mb-3 text-muted small">No reviews yet</p>
+{% endif %}
 
 {% if listing.approval_status != 'approved' %}
 <div class="alert alert-warning">
