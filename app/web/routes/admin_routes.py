@@ -8,7 +8,7 @@ from app.models.user import User
 from app.models.product_listing import ProductListing
 from app.models.order import Order
 from app.models.enums import ApprovalStatus, WorkflowStatus
-from app.services import admin_service, dispute_service, seller_service
+from app.services import admin_service, backup_service, dispute_service, seller_service
 from app.services.auth_service import get_current_user
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
@@ -161,6 +161,38 @@ def reject_seller_application(application_id):
     except ValueError as e:
         flash(str(e), "danger")
     return redirect(url_for("admin.seller_applications"))
+
+
+# --- M12: backup & recovery (NFR-03 / FSR-25/26) ---------------------------
+
+@admin_bp.route("/backups")
+@role_required("admin")
+@admin_2fa_required
+def backups():
+    return render_template("admin/backups.html", backups=backup_service.list_backups())
+
+
+@admin_bp.route("/backups/create", methods=["POST"])
+@role_required("admin")
+@admin_2fa_required
+def create_backup():
+    record = backup_service.create_backup(get_current_user())
+    flash(f"Backup created: {record.filename}", "success")
+    return redirect(url_for("admin.backups"))
+
+
+@admin_bp.route("/backups/restore", methods=["POST"])
+@role_required("admin")
+@admin_2fa_required
+def restore_backup():
+    try:
+        record = backup_service.restore_backup(
+            get_current_user(), request.form.get("filename", "")
+        )
+        flash(f"Database restored from {record.filename}.", "success")
+    except ValueError as e:
+        flash(str(e), "danger")
+    return redirect(url_for("admin.backups"))
 
 
 # --- FR-15 + authentication review: order/workflow management -------------
