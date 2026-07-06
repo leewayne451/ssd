@@ -49,9 +49,11 @@
         <input type="hidden" name="listing_id" value="{{ listing.id }}">
         <button type="submit" class="btn btn-primary">Add to cart</button>
     </form>
-    <form method="post" action="{{ url_for('listing.report', listing_id=listing.id) }}">
+    <form method="post" action="{{ url_for('listing.report', listing_id=listing.id) }}" class="d-flex gap-2">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <button type="submit" class="btn btn-outline-warning">Report listing</button>
+        <input type="text" name="reason" class="form-control"
+               placeholder="Why is this listing suspicious?" maxlength="1000">
+        <button type="submit" class="btn btn-outline-warning text-nowrap">Report listing</button>
     </form>
 </div>
 {% endif %}
