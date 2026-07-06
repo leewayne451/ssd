@@ -24,7 +24,9 @@ class RegistrationForm(FlaskForm):
             raise ValidationError('Email already registered.')
 
 class LoginForm(FlaskForm):
+    # No "remember me": the backend never honoured it, and doing so would
+    # conflict with the 30-minute inactivity timeout (FSR-04) — a dead
+    # security control on the form is worse than none.
     email = StringField('Email', validators=[DataRequired(), Email()])
     password = PasswordField('Password', validators=[DataRequired()])
-    remember_me = BooleanField('Remember Me')
     submit = SubmitField('Login')

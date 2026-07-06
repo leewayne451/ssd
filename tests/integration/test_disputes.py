@@ -185,6 +185,25 @@ def test_admin_invalid_outcome_rejected(client, db_session):
     assert dispute.status == DisputeStatus.OPEN
 
 
+def test_closed_disputes_remain_visible_to_admin(client, db_session):
+    """UI-audit item 13: resolved disputes used to vanish from the admin UI —
+    the queue now keeps a recently-closed history with notes + resolver."""
+    buyer = User(email="closedcase@example.com", password_hash="x",
+                 role=UserRole.BUYER, status="active")
+    db.session.add(buyer)
+    db.session.commit()
+    order = _order_for(buyer)
+    dispute, _ = dispute_service.raise_dispute(buyer, order.id, "scratched dial")
+
+    admin = _make_admin_verified(client)
+    dispute_service.resolve_dispute(admin, dispute.id, "resolved", "Partial refund.")
+
+    page = client.get("/admin/disputes")
+    assert page.status_code == 200
+    assert b"Recently closed" in page.data
+    assert b"Partial refund." in page.data
+
+
 def test_non_admin_cannot_resolve(client, db_session, login_as):
     buyer = User(email="hopefulbuyer@example.com", password_hash="x",
                  role=UserRole.BUYER, status="active")

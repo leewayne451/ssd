@@ -368,8 +368,11 @@ def update_order_status(order_id):
 @role_required("admin")
 @admin_2fa_required
 def disputes():
-    open_disputes = dispute_service.list_open_disputes()
-    return render_template("admin/disputes.html", open_disputes=open_disputes)
+    return render_template(
+        "admin/disputes.html",
+        open_disputes=dispute_service.list_open_disputes(),
+        closed_disputes=dispute_service.list_closed_disputes(),
+    )
 
 
 @admin_bp.route("/disputes/<int:dispute_id>/resolve", methods=["POST"])

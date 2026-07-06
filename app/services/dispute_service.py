@@ -89,6 +89,19 @@ def list_open_disputes() -> list[Dispute]:
     )
 
 
+def list_closed_disputes(limit: int = 50) -> list[Dispute]:
+    """Recently closed disputes for the admin history view (NFSR-08 — the
+    decision trail stays reviewable, not just buried in audit rows)."""
+    return (
+        Dispute.query.filter(Dispute.status.in_(
+            [DisputeStatus.RESOLVED, DisputeStatus.DISMISSED]
+        ))
+        .order_by(Dispute.resolved_at.desc(), Dispute.id.desc())
+        .limit(limit)
+        .all()
+    )
+
+
 def resolve_dispute(admin, dispute_id: int, outcome: str, notes: str = "") -> Dispute:
     """
     Close a dispute as `resolved` or `dismissed` (admin-only surface, FSR-10).

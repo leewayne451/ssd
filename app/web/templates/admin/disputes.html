@@ -47,5 +47,41 @@
 <p>No open disputes.</p>
 {% endif %}
 
+<h2 class="h5 mt-5">Recently closed</h2>
+{% if closed_disputes %}
+<table class="table table-sm align-middle">
+    <thead>
+        <tr>
+            <th scope="col">ID</th>
+            <th scope="col">Order</th>
+            <th scope="col">Outcome</th>
+            <th scope="col">Resolution notes</th>
+            <th scope="col">Resolved by</th>
+            <th scope="col">Resolved</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for d in closed_disputes %}
+        <tr>
+            <td>{{ d.id }}</td>
+            <td>#{{ d.order_id }}</td>
+            <td>
+                {% if d.status.value == 'resolved' %}
+                <span class="badge text-bg-success">resolved</span>
+                {% else %}
+                <span class="badge text-bg-secondary">dismissed</span>
+                {% endif %}
+            </td>
+            <td class="cell-clamp-sm">{{ d.resolution_notes or '—' }}</td>
+            <td>{{ '#' ~ d.resolved_by_admin_id if d.resolved_by_admin_id else '—' }}</td>
+            <td>{{ d.resolved_at.strftime('%Y-%m-%d %H:%M') if d.resolved_at else '—' }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p class="text-muted">No closed disputes yet.</p>
+{% endif %}
+
 <a class="btn btn-outline-secondary" href="{{ url_for('admin.index') }}">Back to admin</a>
 {% endblock %}
