@@ -137,10 +137,81 @@ class TestProfileIDOR:
         )
         assert resp.status_code in (302, 401)
 
-    def test_non_existent_profile_view_returns_404(self, client):
-        """Edge case: viewing a profile that does not exist -> 404."""
-        user = create_user_with_profile("diana@test.com")
+    def test_edit_of_other_users_missing_profile_creates_nothing(self, client):
+        """Regression: the edit route used to auto-create a Profile row for
+        ANY user_id before checking ownership — an IDOR that let one user
+        pollute another's account. Now: 403 and no row."""
+        from werkzeug.security import generate_password_hash
+
+        bare = User(
+            email="bare@test.com",
+            password_hash=generate_password_hash("testpass123"),
+            role="buyer",
+            status="active",
+        )
+        _db.session.add(bare)
+        _db.session.commit()
+        attacker = create_user_with_profile("polluter@test.com")
+        login_as(client, attacker)
+
+        resp = client.get(f"/profile/{bare.id}/edit")
+        assert resp.status_code == 403
+        assert Profile.query.filter_by(user_id=bare.id).count() == 0
+
+    def test_own_missing_profile_returns_404(self, client):
+        """Edge case: viewing one's OWN not-yet-created profile -> 404.
+        (Another user's id would 403 before existence is ever checked.)"""
+        from werkzeug.security import generate_password_hash
+
+        user = User(
+            email="noprofile@test.com",
+            password_hash=generate_password_hash("testpass123"),
+            role="buyer",
+            status="active",
+        )
+        _db.session.add(user)
+        _db.session.commit()
         login_as(client, user)
 
-        resp = client.get("/profile/99999")
+        resp = client.get(f"/profile/{user.id}")
         assert resp.status_code == 404
+
+
+class TestProfileViewPrivacy:
+    """SFR-03 / NFSR-01: profile pages are own-only (admins excepted) —
+    they carry personal data (name, phone, address) and were previously
+    world-readable."""
+
+    def test_owner_can_view_own_profile(self, client):
+        user = create_user_with_profile("owner@test.com", first="Olivia")
+        login_as(client, user)
+
+        resp = client.get(f"/profile/{user.id}")
+        assert resp.status_code == 200
+        assert b"Olivia" in resp.data
+
+    def test_user_cannot_view_other_profile(self, client):
+        target = create_user_with_profile("celeb@test.com", first="Famous")
+        snooper = create_user_with_profile("snooper@test.com")
+        login_as(client, snooper)
+
+        resp = client.get(f"/profile/{target.id}")
+        assert resp.status_code == 403
+        assert b"Famous" not in resp.data
+
+    def test_anonymous_cannot_view_profile(self, client):
+        target = create_user_with_profile("hidden@test.com")
+
+        resp = client.get(f"/profile/{target.id}")
+        assert resp.status_code == 401
+
+    def test_admin_can_view_any_profile(self, client):
+        target = create_user_with_profile("watched@test.com", first="Watched")
+        admin = create_user_with_profile("adminview@test.com")
+        admin.role = "admin"
+        _db.session.commit()
+        login_as(client, admin)
+
+        resp = client.get(f"/profile/{target.id}")
+        assert resp.status_code == 200
+        assert b"Watched" in resp.data

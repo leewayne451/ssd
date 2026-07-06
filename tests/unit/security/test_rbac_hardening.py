@@ -91,15 +91,23 @@ def test_role_change_takes_effect_without_relogin(app, make_user):
         assert _status(seller_view) == 403
 
 
-def test_dev_login_route_disabled_outside_debug_and_testing(app, client, db_session):
-    """T-13: the dev quick-login helper must be dead in production-like config."""
+def test_dev_login_route_removed_entirely(app, client, db_session):
+    """T-13 (hardened): the dev quick-login backdoor no longer exists AT ALL.
+
+    Originally the route was merely debug-gated (403 in production-like
+    config); the authorization audit removed it outright — an authentication
+    bypass has no place in the codebase in any mode. 404 in every config.
+    """
+    # In testing/debug mode: gone.
+    assert client.get("/dev/login_as_seller").status_code == 404
+
+    # And in production-like config: still gone.
     old_testing = app.config.get("TESTING", False)
     old_debug = app.debug
     app.config["TESTING"] = False
     app.debug = False
     try:
-        resp = client.get("/dev/login_as_seller")
-        assert resp.status_code == 403
+        assert client.get("/dev/login_as_seller").status_code == 404
     finally:
         app.config["TESTING"] = old_testing
         app.debug = old_debug
