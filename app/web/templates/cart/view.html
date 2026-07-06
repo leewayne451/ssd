@@ -30,7 +30,7 @@
                 <form method="post" action="{{ url_for('cart.update_cart_item') }}" class="d-flex gap-2">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input type="hidden" name="listing_id" value="{{ item.listing_id }}">
-                    <input type="number" class="form-control form-control-sm" style="width: 5rem"
+                    <input type="number" class="form-control form-control-sm w-qty"
                            name="quantity" value="{{ item.quantity }}" min="1" max="99">
                     <button type="submit" class="btn btn-sm btn-outline-secondary">Update</button>
                 </form>

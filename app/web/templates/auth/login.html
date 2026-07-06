@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container mt-5" style="max-width: 500px;">
+<div class="container mt-5 form-narrow">
     <h2>Login</h2>
     <form method="POST" action="{{ url_for('auth.login') }}">
         {{ form.hidden_tag() }}

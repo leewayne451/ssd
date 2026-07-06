@@ -49,7 +49,7 @@
     <div class="d-flex flex-wrap gap-2">
         {% for f in images %}
         <img src="{{ url_for('listing.media', filename=f.stored_filename) }}"
-             alt="{{ f.original_filename }}" class="img-thumbnail" style="max-width: 200px;">
+             alt="{{ f.original_filename }}" class="img-thumbnail thumb-200">
         {% endfor %}
     </div>
 </div>

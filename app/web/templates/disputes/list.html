@@ -22,7 +22,7 @@
         <tr>
             <td>{{ d.id }}</td>
             <td><a href="{{ url_for('order.order_detail', order_id=d.order_id) }}">#{{ d.order_id }}</a></td>
-            <td class="text-break" style="max-width: 24rem;">{{ d.reason }}</td>
+            <td class="cell-clamp">{{ d.reason }}</td>
             <td>
                 {% if d.status.value in ('open', 'under_review') %}
                 <span class="badge text-bg-warning">{{ d.status.value.replace('_', ' ') }}</span>
@@ -32,7 +32,7 @@
                 <span class="badge text-bg-secondary">dismissed</span>
                 {% endif %}
             </td>
-            <td class="text-break" style="max-width: 18rem;">{{ d.resolution_notes or '—' }}</td>
+            <td class="cell-clamp-sm">{{ d.resolution_notes or '—' }}</td>
             <td>{{ d.created_at.strftime('%Y-%m-%d %H:%M') if d.created_at else '—' }}</td>
         </tr>
         {% endfor %}

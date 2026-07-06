@@ -23,11 +23,11 @@
             <td>{{ d.id }}</td>
             <td>#{{ d.order_id }}</td>
             <td>#{{ d.buyer_id }}</td>
-            <td class="text-break" style="max-width: 24rem;">{{ d.reason }}</td>
+            <td class="cell-clamp">{{ d.reason }}</td>
             <td>{{ d.created_at.strftime('%Y-%m-%d %H:%M') if d.created_at else '—' }}</td>
             <td>
                 <form method="post" action="{{ url_for('admin.resolve_dispute', dispute_id=d.id) }}"
-                      class="d-flex flex-column gap-2" style="min-width: 16rem;">
+                      class="d-flex flex-column gap-2 form-min-w">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input type="text" class="form-control form-control-sm" name="notes"
                            placeholder="Resolution notes" maxlength="2000">
