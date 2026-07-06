@@ -27,7 +27,43 @@
         {% endif %}
     </dd>
     {% endif %}
+
+    {% if auth_result %}
+    {# SFR-14: verdict + date only — admin moderation notes never render here. #}
+    <dt class="col-sm-3">In-house authentication</dt>
+    <dd class="col-sm-9">
+        {% if auth_result.result == 'authentic' %}
+        <span class="badge text-bg-success">authentic</span>
+        {% else %}
+        <span class="badge text-bg-danger">counterfeit</span>
+        {% endif %}
+        {% if auth_result.reviewed_at %}
+        <span class="text-muted">— verified {{ auth_result.reviewed_at.strftime('%Y-%m-%d %H:%M') }}</span>
+        {% endif %}
+    </dd>
+    {% endif %}
 </dl>
+
+{# --- Order history timeline (NFR-15/NFSR-19 records, surfaced) --- #}
+{% if history %}
+<div class="mb-4">
+    <h2 class="h5">Order history</h2>
+    <ul class="list-group">
+        {% for h in history %}
+        <li class="list-group-item d-flex justify-content-between">
+            <span>
+                {% if h.old_status %}
+                {{ h.old_status.replace('_', ' ') }} → <strong>{{ h.new_status.replace('_', ' ') }}</strong>
+                {% else %}
+                <strong>{{ h.new_status.replace('_', ' ') }}</strong>
+                {% endif %}
+            </span>
+            <small class="text-muted">{{ h.changed_at.strftime('%Y-%m-%d %H:%M') if h.changed_at else '' }}</small>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
 
 {% if order.workflow_status.value == 'authenticated' and order.payment_status.value == 'pending' %}
 <div class="alert alert-success">

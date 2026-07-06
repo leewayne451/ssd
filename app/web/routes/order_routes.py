@@ -57,7 +57,28 @@ def order_detail(order_id):
     # IDOR protection: only the buyer may view their own order (404/403 inside)
     require_order_buyer(order, current_user)
 
+    from app.models.authentication_review import AuthenticationReview
+    from app.models.order_status_history import OrderStatusHistory
     from app.services import dispute_service, review_service, shipment_service
+
+    history = (
+        OrderStatusHistory.query.filter_by(order_id=order.id)
+        .order_by(OrderStatusHistory.changed_at.asc(), OrderStatusHistory.id.asc())
+        .all()
+    )
+    auth_review = (
+        AuthenticationReview.query.filter_by(order_id=order.id)
+        .order_by(AuthenticationReview.reviewed_at.desc(), AuthenticationReview.id.desc())
+        .first()
+    )
+    # SFR-14: only the verdict + date reach the buyer — the template never
+    # receives the admin's moderation notes.
+    auth_result = None
+    if auth_review is not None:
+        auth_result = {
+            "result": auth_review.result.value,
+            "reviewed_at": auth_review.reviewed_at,
+        }
 
     return render_template(
         "orders/detail.html",
@@ -66,6 +87,8 @@ def order_detail(order_id):
         review=review_service.get_review_for_order(order.id),
         shipment=shipment_service.get_shipment_for_order(order.id),
         dispute=dispute_service.get_dispute_for_order(order.id),
+        history=history,
+        auth_result=auth_result,
     )
 
 

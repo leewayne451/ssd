@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 
+from app.extensions import db
 from app.security.rbac import role_required
 from app.security.admin_2fa import admin_2fa_required
 from app.models.audit_log import AuditLog
@@ -201,11 +202,55 @@ def restore_backup():
 @role_required("admin")
 @admin_2fa_required
 def orders():
+    from app.models.authentication_review import AuthenticationReview
+    from app.services.workflow_service import ALLOWED_TRANSITIONS
+
     awaiting = Order.query.filter_by(
         workflow_status=WorkflowStatus.UNDER_AUTHENTICATION
     ).all()
     recent = Order.query.order_by(Order.created_at.desc()).limit(50).all()
-    return render_template("admin/orders.html", awaiting=awaiting, recent=recent)
+
+    # Latest authentication verdict per order (admin-only surface — the
+    # moderation notes shown here never reach buyer/seller pages, SFR-14).
+    reviews = {}
+    for review in AuthenticationReview.query.order_by(
+        AuthenticationReview.reviewed_at.asc(), AuthenticationReview.id.asc()
+    ).all():
+        reviews[review.order_id] = review
+
+    # Legal next states per order so the manual-update form (FR-15) only
+    # offers transitions the audited state machine could accept.
+    next_states = {
+        o.id: sorted(ALLOWED_TRANSITIONS.get(o.workflow_status.value, set()))
+        for o in recent
+    }
+    return render_template(
+        "admin/orders.html",
+        awaiting=awaiting,
+        recent=recent,
+        reviews=reviews,
+        next_states=next_states,
+    )
+
+
+@admin_bp.route("/orders/<int:order_id>/refund", methods=["POST"])
+@role_required("admin")
+@admin_2fa_required
+def refund_order(order_id):
+    """Refund a paid order (D1 §9.3.4 Paid -> Refunded, admin-only)."""
+    from app.services import checkout_service
+
+    admin = get_current_user()
+    order = db.session.get(Order, order_id)
+    if order is None:
+        flash("Order not found.", "danger")
+        return redirect(url_for("admin.orders"))
+    try:
+        checkout_service.refund_order(order, admin)
+        flash(f"Order #{order.id} refunded.", "success")
+    except (ValueError, PermissionError) as e:
+        flash(str(e), "danger")
+    return redirect(url_for("admin.orders"))
 
 
 @admin_bp.route("/orders/<int:order_id>/status", methods=["POST"])
