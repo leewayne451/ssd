@@ -24,6 +24,12 @@ def view_profile(user_id: int):
 
     profile = get_profile_by_user_id(user_id)
     if not profile:
+        if user_id == current_user.id:
+            # Own profile row missing (accounts that predate
+            # profile-at-registration, or admins created/promoted outside
+            # the register flow): the edit page creates it, so send the
+            # user there instead of a dead-end 404.
+            return redirect(url_for("profile.edit_profile", user_id=user_id))
         abort(404)
     return render_template("profile/view.html", profile=profile)
 

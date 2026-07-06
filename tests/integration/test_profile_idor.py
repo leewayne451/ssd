@@ -158,9 +158,11 @@ class TestProfileIDOR:
         assert resp.status_code == 403
         assert Profile.query.filter_by(user_id=bare.id).count() == 0
 
-    def test_own_missing_profile_returns_404(self, client):
-        """Edge case: viewing one's OWN not-yet-created profile -> 404.
-        (Another user's id would 403 before existence is ever checked.)"""
+    def test_own_missing_profile_redirects_to_edit_and_heals(self, client):
+        """Viewing one's OWN not-yet-created profile self-heals: redirect to
+        the edit page, which creates the row. (Another user's id would 403
+        before existence is ever checked; a missing OTHER profile stays 404
+        for admins — see TestProfileViewPrivacy.)"""
         from werkzeug.security import generate_password_hash
 
         user = User(
@@ -174,7 +176,13 @@ class TestProfileIDOR:
         login_as(client, user)
 
         resp = client.get(f"/profile/{user.id}")
-        assert resp.status_code == 404
+        assert resp.status_code == 302
+        assert f"/profile/{user.id}/edit" in resp.headers["Location"]
+
+        # Following the redirect lands on the edit form and creates the row.
+        followed = client.get(f"/profile/{user.id}", follow_redirects=True)
+        assert followed.status_code == 200
+        assert Profile.query.filter_by(user_id=user.id).count() == 1
 
 
 class TestProfileViewPrivacy:
@@ -215,3 +223,36 @@ class TestProfileViewPrivacy:
         resp = client.get(f"/profile/{target.id}")
         assert resp.status_code == 200
         assert b"Watched" in resp.data
+
+    def test_admin_without_profile_row_reaches_own_profile(self, client):
+        """Regression: admins created outside the register flow (seeded,
+        promoted, or direct DB rows) have no Profile row and got a dead-end
+        404 on 'My profile'. Now they self-heal via the edit page."""
+        from werkzeug.security import generate_password_hash
+
+        admin = User(
+            email="bareadmin@test.com",
+            password_hash=generate_password_hash("testpass123"),
+            role="admin",
+            status="active",
+        )
+        _db.session.add(admin)
+        _db.session.commit()
+        login_as(client, admin)
+
+        resp = client.get(f"/profile/{admin.id}", follow_redirects=True)
+        assert resp.status_code == 200
+        assert Profile.query.filter_by(user_id=admin.id).count() == 1
+
+        # A missing profile for SOMEONE ELSE is still a 404 for the admin —
+        # no auto-creation on other users' behalf.
+        from werkzeug.security import generate_password_hash as gph
+
+        bare_user = User(email="bareuser@test.com", password_hash=gph("x1234567!"),
+                         role="buyer", status="active")
+        _db.session.add(bare_user)
+        _db.session.commit()
+
+        other = client.get(f"/profile/{bare_user.id}")
+        assert other.status_code == 404
+        assert Profile.query.filter_by(user_id=bare_user.id).count() == 0
