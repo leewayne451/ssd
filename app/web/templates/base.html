@@ -71,7 +71,7 @@
                     {% endif %}
                     {% if role == 'seller' %}
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('listing.create') }}">Create listing</a>
+                            <a class="nav-link" href="{{ url_for('seller.my_listings') }}">My listings</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="{{ url_for('seller.sales') }}">My sales</a>

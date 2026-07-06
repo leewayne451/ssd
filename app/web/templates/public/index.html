@@ -65,8 +65,11 @@
         <div class="card h-100">
             <div class="card-body">
                 <h2 class="h5 card-title">Sell an item</h2>
-                <p class="card-text text-muted">Create a listing — it goes live after admin approval.</p>
-                <a href="{{ url_for('listing.create') }}" class="btn btn-outline-primary">Create listing</a>
+                <p class="card-text text-muted">Create and manage listings — they go live after admin approval.</p>
+                <div class="d-flex gap-2">
+                    <a href="{{ url_for('listing.create') }}" class="btn btn-outline-primary">Create listing</a>
+                    <a href="{{ url_for('seller.my_listings') }}" class="btn btn-outline-secondary">My listings</a>
+                </div>
             </div>
         </div>
     </div>

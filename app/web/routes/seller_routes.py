@@ -41,6 +41,25 @@ def apply():
     )
 
 
+@seller_bp.route("/seller/listings")
+@role_required("seller")
+def my_listings():
+    """The seller's own listings, including pending/rejected ones (FR-07).
+
+    Approval-gated public pages hide unapproved listings, so without this
+    page a seller could only find their pending items by remembering URLs.
+    Scoped to the requester's own seller_id — never anyone else's.
+    """
+    from app.models.product_listing import ProductListing
+
+    listings = (
+        ProductListing.query.filter_by(seller_id=get_current_user().id)
+        .order_by(ProductListing.created_at.desc(), ProductListing.id.desc())
+        .all()
+    )
+    return render_template("seller/listings.html", listings=listings)
+
+
 @seller_bp.route("/seller/sales")
 @role_required("seller")
 def sales():
