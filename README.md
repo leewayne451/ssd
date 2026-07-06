@@ -39,12 +39,26 @@ cp .env.example .env               # Windows PowerShell: Copy-Item .env.example 
 # 4. Apply database migrations (SQLite at instance/chateau.db)
 flask db upgrade
 
-# 5. Run the development server
+# 5. Create the administrator account (no in-app path to the admin role exists)
+flask seed-admin --email admin@example.com --password "a-strong-passphrase"
+
+# 6. Run the development server
 python manage.py
 ```
 
 The `.env.example` defaults are fine for local development. Set a strong
 `SECRET_KEY` before running anywhere else.
+
+### Admin account & 2FA
+
+Registration always creates a buyer — the bootstrap administrator is
+provisioned with the idempotent `flask seed-admin` command (step 5 above, or
+set `ADMIN_EMAIL`/`ADMIN_PASSWORD` in `.env` and run it without options; the
+Docker entrypoint runs it automatically on every start). The password must
+pass the same strength policy as normal registration. On the first visit to
+`/admin` the account is walked through TOTP two-factor enrolment — scan the
+QR code with any authenticator app (Google Authenticator, Aegis, 1Password…);
+no admin action works until 2FA is verified.
 
 ## Testing
 

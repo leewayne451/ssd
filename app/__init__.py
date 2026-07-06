@@ -50,6 +50,9 @@ def create_app(config_name=None):
     from .web.routes import register_routes
     register_routes(app)
 
+    from .cli import register_cli
+    register_cli(app)
+
     from app.utils.decorators import inject_current_user
     app.context_processor(inject_current_user)
 

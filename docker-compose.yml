@@ -25,6 +25,12 @@ services:
       DATABASE_URL: sqlite:////app/instance/chateau.db
       UPLOAD_DIR: /app/uploads
       LOG_DIR: /app/logs
+      # Optional bootstrap admin: set BOTH in the same .env to auto-provision
+      # an administrator on startup (idempotent `flask seed-admin` in the
+      # entrypoint; existing accounts are never touched). The seeded admin
+      # still must enrol TOTP 2FA on first /admin visit.
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
     volumes:
       - app-instance:/app/instance
       - app-uploads:/app/uploads
