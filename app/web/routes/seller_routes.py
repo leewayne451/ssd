@@ -7,8 +7,8 @@ enforced service-side by querying per-user).
 """
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 
-from app.security.rbac import login_required
-from app.services import seller_service
+from app.security.rbac import login_required, role_required
+from app.services import seller_service, shipment_service
 from app.services.auth_service import get_current_user
 
 seller_bp = Blueprint("seller", __name__)
@@ -39,3 +39,15 @@ def apply():
         application=application,
         is_seller=current_user.role.value == "seller",
     )
+
+
+@seller_bp.route("/seller/sales")
+@role_required("seller")
+def sales():
+    """Orders on the seller's own listings (FR-10 / M9).
+
+    The service scopes the query to the seller's listings, so no other
+    seller's orders can appear here (FSR-09/SFR-10).
+    """
+    rows = shipment_service.get_sales_for_seller(get_current_user())
+    return render_template("seller/sales.html", rows=rows)

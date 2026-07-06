@@ -70,6 +70,15 @@
             </div>
         </div>
     </div>
+    <div class="col">
+        <div class="card h-100">
+            <div class="card-body">
+                <h2 class="h5 card-title">My sales</h2>
+                <p class="card-text text-muted">Accept orders and record shipment tracking.</p>
+                <a href="{{ url_for('seller.sales') }}" class="btn btn-outline-primary">View sales</a>
+            </div>
+        </div>
+    </div>
     {% endif %}
 
     {% if role == 'admin' %}

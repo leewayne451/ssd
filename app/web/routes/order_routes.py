@@ -57,13 +57,14 @@ def order_detail(order_id):
     # IDOR protection: only the buyer may view their own order (404/403 inside)
     require_order_buyer(order, current_user)
 
-    from app.services import review_service
+    from app.services import review_service, shipment_service
 
     return render_template(
         "orders/detail.html",
         order=order,
         can_review=review_service.can_review(current_user, order),
         review=review_service.get_review_for_order(order.id),
+        shipment=shipment_service.get_shipment_for_order(order.id),
     )
 
 
@@ -97,10 +98,12 @@ def transition_order_status(order_id):
     except Exception:
         return jsonify({"error": "Failed to transition order"}), 500
 
-    # Buyers land on their order; sellers/admins have no access to the
-    # buyer-private detail page.
+    # Buyers land on their order; sellers manage from their sales page;
+    # neither sellers nor admins can reach the buyer-private detail page.
     if user_is_order_buyer(order, current_user):
         return redirect(url_for("order.order_detail", order_id=order_id))
+    if current_user.role.value == "seller":
+        return redirect(url_for("seller.sales"))
     return redirect(url_for("public.index"))
 
 
