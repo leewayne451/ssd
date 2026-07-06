@@ -1,10 +1,11 @@
 /*
  * Château Collective — Custom Styles
- * Phase 0: placeholder only.
- * Custom styles will be added in Phase 1+ once UI components are defined.
+ *
+ * All styling lives in this self-hosted stylesheet: the CSP is
+ * style-src 'self' with no 'unsafe-inline', so inline style="" attributes
+ * are ignored by the browser. Never use them in templates — add a class here.
  */
 
-/* Example baseline — override Bootstrap body font if desired */
 body {
     display: flex;
     flex-direction: column;
@@ -14,3 +15,64 @@ body {
 main {
     flex: 1;
 }
+
+/* Narrow centered form container (login/register). */
+.form-narrow {
+    max-width: 500px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Compact numeric input (cart quantity). */
+.w-qty {
+    width: 5rem;
+}
+
+/* Clamp long user-supplied text inside table cells. */
+.cell-clamp {
+    max-width: 28rem;
+    overflow-wrap: anywhere;
+}
+
+.cell-clamp-sm {
+    max-width: 18rem;
+    overflow-wrap: anywhere;
+}
+
+/* Minimum width for inline decision forms in admin tables. */
+.form-min-w {
+    min-width: 16rem;
+}
+
+/* Listing image thumbnails. */
+.thumb-200 {
+    max-width: 200px;
+}
+
+/* Security-dashboard volume meter. CSP forbids inline styles, so fill
+   widths come from the p0..p100 decile classes computed server-side. */
+.meter {
+    background-color: #e9ecef;
+    border-radius: 0.25rem;
+    height: 0.75rem;
+    overflow: hidden;
+    width: 100%;
+}
+
+.meter-fill {
+    background-color: #6c757d;
+    display: block;
+    height: 100%;
+}
+
+.p0 { width: 2%; } /* never fully invisible */
+.p10 { width: 10%; }
+.p20 { width: 20%; }
+.p30 { width: 30%; }
+.p40 { width: 40%; }
+.p50 { width: 50%; }
+.p60 { width: 60%; }
+.p70 { width: 70%; }
+.p80 { width: 80%; }
+.p90 { width: 90%; }
+.p100 { width: 100%; }

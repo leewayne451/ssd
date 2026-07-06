@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}Admin · Listings — Château Collective{% endblock %}
+
+{% macro moderation_row(l, show_report_reason=False) %}
+<tr>
+    <td>{{ l.id }}</td>
+    <td><a href="{{ url_for('listing.detail', listing_id=l.id) }}">{{ l.title }}</a></td>
+    <td>{{ l.brand }} · {{ l.category }}</td>
+    <td>{{ l.approval_status.value }}</td>
+    {% if show_report_reason %}
+    <td class="cell-clamp-sm">
+        {% if l.report_reason %}{{ l.report_reason }}{% else %}<span class="text-muted">no reason given</span>{% endif %}
+    </td>
+    {% endif %}
+    <td>
+        <div class="d-flex gap-2 flex-wrap">
+            <form method="post" action="{{ url_for('admin.approve_listing', listing_id=l.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-sm btn-outline-success">Approve</button>
+            </form>
+            {# SFR-14: the reason lands in the audit log and is never shown to
+               the seller/public — moderation notes stay internal. #}
+            <form method="post" action="{{ url_for('admin.reject_listing', listing_id=l.id) }}" class="d-flex gap-2">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="text" name="reason" class="form-control form-control-sm"
+                       placeholder="Rejection reason" maxlength="1000">
+                <button type="submit" class="btn btn-sm btn-outline-danger">Reject</button>
+            </form>
+        </div>
+    </td>
+</tr>
+{% endmacro %}
+
+{% block content %}
+<h1 class="h3 mb-4">Listing moderation</h1>
+
+<h2 class="h5">Pending approval</h2>
+<table class="table align-middle mb-4">
+    <thead><tr><th>ID</th><th>Title</th><th>Details</th><th>Status</th><th>Action</th></tr></thead>
+    <tbody>
+        {% for l in pending %}{{ moderation_row(l) }}{% else %}
+        <tr><td colspan="5" class="text-muted">Nothing pending.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<h2 class="h5">Reported listings</h2>
+<table class="table align-middle">
+    <thead><tr><th>ID</th><th>Title</th><th>Details</th><th>Status</th><th>Report reason</th><th>Action</th></tr></thead>
+    <tbody>
+        {% for l in reported %}{{ moderation_row(l, show_report_reason=True) }}{% else %}
+        <tr><td colspan="6" class="text-muted">No reports.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

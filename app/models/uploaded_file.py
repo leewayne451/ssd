@@ -1,7 +1,13 @@
+"""Uploaded listing image metadata (SDR-04)."""
+
 from app.extensions import db
 
 
 class UploadedFile(db.Model):
+    """Metadata for a validated listing image (SDR-04). stored_filename is
+    always server-generated (uuid + allow-listed extension) — user-supplied
+    names never reach the filesystem.
+    """
     __tablename__ = "uploaded_files"
 
     id = db.Column(db.Integer, primary_key=True)

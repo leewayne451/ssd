@@ -1,8 +1,17 @@
+"""Order entity — a buyer's purchase commitment (FR-09)."""
+
 from app.extensions import db
 from app.models.enums import WorkflowStatus, PaymentStatus
 
 
 class Order(db.Model):
+    """A buyer's purchase commitment (FR-09).
+
+    committed_price is captured server-side from the listing at commit time
+    (D1 9.3.1: client prices are never trusted). workflow_status moves only
+    through workflow_service's audited H-3 state machine; payment_status
+    only through checkout_service (9.3.4 simulated payment).
+    """
     __tablename__ = "orders"
 
     id = db.Column(db.Integer, primary_key=True)

@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}Admin · Backups — Château Collective{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-4">Backups &amp; recovery</h1>
+
+<p class="text-muted">
+    Snapshots are taken with SQLite's online backup API and stored under the
+    instance folder — outside the web root, never URL-addressable. A host-level
+    daily cron (<code>deploy/scripts/backup.sh</code>) provides the second copy.
+</p>
+
+<form method="post" action="{{ url_for('admin.create_backup') }}" class="mb-4">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="btn btn-primary">Create backup now</button>
+</form>
+
+{% if backups %}
+<table class="table align-middle">
+    <thead>
+        <tr>
+            <th scope="col">ID</th>
+            <th scope="col">Filename</th>
+            <th scope="col">Size</th>
+            <th scope="col">Type</th>
+            <th scope="col">Created</th>
+            <th scope="col">By admin</th>
+            <th scope="col">Action</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for b in backups %}
+        <tr>
+            <td>{{ b.id }}</td>
+            <td><code>{{ b.filename }}</code></td>
+            <td>{{ b.file_size or '—' }}</td>
+            <td>{{ b.backup_type }}</td>
+            <td>{{ b.created_at.strftime('%Y-%m-%d %H:%M') if b.created_at else '—' }}</td>
+            <td>#{{ b.created_by_admin_id or '—' }}</td>
+            <td>
+                {# data-confirm is bound in static/js/main.js — inline handlers
+                   are dead under our script-src 'self' CSP. #}
+                <form method="post" action="{{ url_for('admin.restore_backup') }}"
+                      data-confirm="Restore the database from {{ b.filename }}? Data written after this backup will be lost.">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="filename" value="{{ b.filename }}">
+                    <button type="submit" class="btn btn-sm btn-outline-danger">Restore</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>No backups recorded yet.</p>
+{% endif %}
+
+<a class="btn btn-outline-secondary" href="{{ url_for('admin.index') }}">Back to admin</a>
+{% endblock %}

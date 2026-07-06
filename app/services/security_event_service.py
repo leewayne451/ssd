@@ -1,4 +1,10 @@
-# security_event_service — business logic layer.
+"""security_event_service — the SecurityEvent write path (FSR-13).
+
+record() persists an application-level security signal (failed logins,
+lockouts, access denials, rejected sessions…) and never raises. The rows
+feed the /admin/security dashboard (NFSR-20).
+"""
+
 from flask import request
 from app.extensions import db
 from app.models.security_event import SecurityEvent

@@ -1,3 +1,8 @@
+"""Input validation and sanitisation helpers (SDR-01): length caps,
+control-character stripping and HTML tag removal applied before user text
+is persisted.
+"""
+
 import re
 from html.parser import HTMLParser
 
@@ -13,9 +18,11 @@ class _StripTagsParser(HTMLParser):
         self._parts = []
 
     def handle_data(self, data):
+        """Collect text content between tags."""
         self._parts.append(data)
 
     def get_text(self):
+        """Return the concatenated tag-free text."""
         return "".join(self._parts)
 
 

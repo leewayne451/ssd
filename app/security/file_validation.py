@@ -1,3 +1,10 @@
+"""Upload validation (SDR-04).
+
+Extension allow-list, size cap, and magic-byte sniffing that must agree
+with the claimed extension; stored filenames are always server-generated so
+user-supplied names never reach the filesystem.
+"""
+
 import os
 import uuid
 from typing import Optional
@@ -67,5 +74,7 @@ def validate_upload(file):
 
 
 def generate_stored_filename(original_filename):
+    """Return a server-generated stored name (uuid4 hex + validated extension) — the only names the media route will ever serve.
+    """
     ext = original_filename.rsplit(".", 1)[-1].lower() if "." in original_filename else "bin"
     return f"{uuid.uuid4().hex}.{ext}"

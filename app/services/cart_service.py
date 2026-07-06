@@ -1,4 +1,9 @@
-# cart_service — business logic layer.
+"""cart_service — buyer cart operations (FR-08).
+
+Every function is scoped to the acting user's own cart (SFR-08), and only
+approved, active, still-available listings may enter a cart (SFR-09).
+"""
+
 from typing import Optional
 
 from app.extensions import db
@@ -36,7 +41,14 @@ def add_item(user, listing_id: int, quantity: int = 1) -> Optional[CartItem]:
     listing = ProductListing.query.get(listing_id)
     if not listing:
         raise ValueError("Listing not found")
-    
+
+    # SFR-09: only approved, active, still-AVAILABLE items may enter a cart —
+    # an item committed to another buyer (or sold) is out of play.
+    approval = getattr(listing.approval_status, "value", listing.approval_status)
+    item_state = getattr(listing.workflow_status, "value", listing.workflow_status)
+    if approval != "approved" or not listing.is_active or item_state != "available":
+        raise ValueError("Listing is not available")
+
     cart = get_or_create_cart(user)
     
     # Check if item already in cart; if so, update quantity

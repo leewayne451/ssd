@@ -1,1 +1,1 @@
-# Forms package — server-side form validation using WTForms.
+"""Forms package — server-side form validation using WTForms."""

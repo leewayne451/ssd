@@ -108,6 +108,59 @@ def assert_owner(resource, current_user, owner_attr=None):
     return True
 
 
+# ---------------------------------------------------------------------------
+# Order-workflow ownership (M2 helpers consumed by M4's workflow/order code)
+# ---------------------------------------------------------------------------
+
+def user_is_order_buyer(order, user) -> bool:
+    """True when ``user`` is the buyer of ``order``. Service-layer safe (no abort)."""
+    user_id = _current_user_id(user)
+    if order is None or user_id is None:
+        return False
+    return order.buyer_id == user_id
+
+
+def user_owns_order_listing(order, user) -> bool:
+    """
+    True when ``user`` is the seller of the listing ``order`` was placed on.
+    Service-layer safe (no abort). Fails closed when the listing is missing.
+    """
+    user_id = _current_user_id(user)
+    if order is None or user_id is None:
+        return False
+    from app.extensions import db
+    from app.models.product_listing import ProductListing
+
+    listing = db.session.get(ProductListing, order.listing_id)
+    if listing is None:
+        return False
+    return listing.seller_id == user_id
+
+
+def require_order_buyer(order, current_user):
+    """Route-layer guard: 404 missing order, 401 anonymous, 403 not the buyer."""
+    if order is None:
+        abort(404)
+    if _current_user_id(current_user) is None:
+        abort(401)
+    if not user_is_order_buyer(order, current_user):
+        _log_idor_attempt(order, "buyer_id")
+        abort(403)
+    return True
+
+
+def require_order_seller(order, current_user):
+    """Route-layer guard: 404 missing order, 401 anonymous, 403 not the listing's seller."""
+    if order is None:
+        abort(404)
+    if _current_user_id(current_user) is None:
+        abort(401)
+    if not user_owns_order_listing(order, current_user):
+        _log_idor_attempt(order, "listing.seller_id")
+        abort(403)
+    return True
+
+
 def ownership_required(loader, id_param="id", owner_attr=None):
     """
     Decorator: load a resource by its URL id then enforce ownership.

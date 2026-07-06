@@ -1,1 +1,1 @@
-# Web application layer — routes, forms, templates, static assets.
+"""Web application layer — routes, forms, templates, static assets."""

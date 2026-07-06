@@ -1,7 +1,12 @@
+"""Workflow transition history entity (NFR-15)."""
+
 from app.extensions import db
 
 
 class OrderStatusHistory(db.Model):
+    """Immutable trail of every workflow transition (who/when/from/to) —
+    business-record retention (NFR-15/NFSR-19).
+    """
     __tablename__ = "order_status_history"
 
     id = db.Column(db.Integer, primary_key=True)

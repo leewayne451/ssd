@@ -13,5 +13,14 @@ if ! flask db upgrade; then
     exit 1
 fi
 
+# 1b) Ensure the bootstrap admin exists (idempotent; explicit no-op unless
+#     BOTH ADMIN_EMAIL and ADMIN_PASSWORD are set — see app/cli.py).
+echo "[entrypoint] Ensuring bootstrap admin (flask seed-admin)…"
+if ! flask seed-admin; then
+    echo "[entrypoint] ERROR: 'flask seed-admin' failed." >&2
+    echo "[entrypoint] Check ADMIN_EMAIL/ADMIN_PASSWORD in the .env next to docker-compose.yml." >&2
+    exit 1
+fi
+
 echo "[entrypoint] Starting application: $*"
 exec "$@"

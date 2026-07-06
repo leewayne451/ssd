@@ -1,7 +1,10 @@
+"""Cart line-item entity (FR-08)."""
+
 from app.extensions import db
 
 
 class CartItem(db.Model):
+    """One listing in a cart; quantity is server-validated (SDR-01)."""
     __tablename__ = "cart_items"
 
     id = db.Column(db.Integer, primary_key=True)

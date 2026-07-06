@@ -1,9 +1,14 @@
-from flask import Blueprint, render_template, request, jsonify, redirect, url_for, session
-from flask_login import login_required, current_user
+"""Cart routes (FR-08): login-gated, scoped to the caller's own cart in
+cart_service (SFR-08); item availability enforced server-side (SFR-09).
+"""
+
+from flask import Blueprint, render_template, request, jsonify, redirect, url_for
 
 from app.extensions import db
-from app.models.cart import Cart
+from app.models.product_listing import ProductListing
+from app.security.rbac import login_required
 from app.services import cart_service
+from app.services.auth_service import get_current_user
 
 cart_bp = Blueprint("cart", __name__)
 
@@ -12,15 +17,25 @@ cart_bp = Blueprint("cart", __name__)
 @login_required
 def view_cart():
     """View the current user's cart."""
+    current_user = get_current_user()
     cart = cart_service.get_cart_for_user(current_user)
     total = cart_service.get_cart_total(current_user)
-    return render_template("cart/view.html", cart=cart, total=total)
+
+    # Pair each cart item with its listing for display.
+    rows = []
+    if cart:
+        for item in cart.items:
+            listing = db.session.get(ProductListing, item.listing_id)
+            rows.append((item, listing))
+
+    return render_template("cart/view.html", cart=cart, rows=rows, total=total)
 
 
 @cart_bp.route("/cart/add", methods=["POST"])
 @login_required
 def add_to_cart():
     """Add an item to the cart."""
+    current_user = get_current_user()
     listing_id = request.form.get("listing_id", type=int)
     quantity = request.form.get("quantity", default=1, type=int)
 
@@ -38,6 +53,7 @@ def add_to_cart():
 @login_required
 def remove_from_cart():
     """Remove an item from the cart."""
+    current_user = get_current_user()
     listing_id = request.form.get("listing_id", type=int)
 
     if not listing_id:
@@ -54,6 +70,7 @@ def remove_from_cart():
 @login_required
 def update_cart_item():
     """Update the quantity of an item in the cart."""
+    current_user = get_current_user()
     listing_id = request.form.get("listing_id", type=int)
     quantity = request.form.get("quantity", type=int)
 
@@ -73,5 +90,6 @@ def update_cart_item():
 @login_required
 def clear_cart():
     """Clear all items from the cart."""
+    current_user = get_current_user()
     cart_service.clear_cart(current_user)
     return redirect(url_for("cart.view_cart"))

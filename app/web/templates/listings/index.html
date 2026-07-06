@@ -1,13 +1,93 @@
 {% extends "base.html" %}
+
+{% block title %}Listings — Château Collective{% endblock %}
+
 {% block content %}
-<h1>Listings</h1>
-<ul>
-  {% for l in listings %}
-    <li>
-      <a href="/listings/{{ l.id }}">{{ l.title }}</a> — {{ l.price }}
-    </li>
-  {% else %}
-    <li>No listings available.</li>
-  {% endfor %}
-</ul>
+<h1 class="h3 mb-4">Listings</h1>
+
+<form method="get" action="{{ url_for('listing.index') }}" class="row g-2 mb-4">
+    <div class="col-md-3">
+        <input type="text" class="form-control" name="q" placeholder="Search title or description"
+               value="{{ filters.q }}" maxlength="200">
+    </div>
+    <div class="col-md-2">
+        <input type="text" class="form-control" name="category" placeholder="Category"
+               value="{{ filters.category }}" maxlength="50">
+    </div>
+    <div class="col-md-2">
+        <input type="text" class="form-control" name="brand" placeholder="Brand"
+               value="{{ filters.brand }}" maxlength="100">
+    </div>
+    <div class="col-md-2">
+        <select class="form-select" name="condition">
+            <option value="">Any condition</option>
+            {% for c in conditions %}
+            <option value="{{ c }}" {% if filters.condition == c %}selected{% endif %}>{{ c.replace('_', ' ') }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-1">
+        <input type="number" class="form-control" name="min_price" placeholder="Min $"
+               value="{{ filters.min_price if filters.min_price is not none }}" min="0" step="0.01">
+    </div>
+    <div class="col-md-1">
+        <input type="number" class="form-control" name="max_price" placeholder="Max $"
+               value="{{ filters.max_price if filters.max_price is not none }}" min="0" step="0.01">
+    </div>
+    <div class="col-md-1">
+        <button type="submit" class="btn btn-primary w-100">Filter</button>
+    </div>
+</form>
+
+{% if listings %}
+<div class="row row-cols-1 row-cols-md-3 g-3">
+    {% for l in listings %}
+    <div class="col">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <a href="{{ url_for('listing.detail', listing_id=l.id) }}">{{ l.title }}</a>
+                </h5>
+                <p class="card-text mb-1"><strong>${{ '%.2f' | format(l.price) }}</strong></p>
+                <p class="card-text text-muted small mb-0">
+                    {{ l.brand }} · {{ l.category }} · {{ (l.condition or '').replace('_', ' ') }}
+                </p>
+                {% set r = (ratings | default({})).get(l.id) %}
+                {% if r %}
+                <p class="card-text small mb-0">★ {{ r.avg }} <span class="text-muted">({{ r.count }} review{{ 's' if r.count != 1 }})</span></p>
+                {% endif %}
+                {% set wf = l.workflow_status | default('available') %}
+                {% if wf == 'sold' %}
+                <span class="badge text-bg-dark mt-1">Sold</span>
+                {% elif wf not in ('available', 'rejected') %}
+                <span class="badge text-bg-info mt-1">Reserved</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% if (pagination | default(none)) and pagination.pages > 1 %}
+<nav aria-label="Listings pagination" class="mt-4">
+    <ul class="pagination">
+        {% if pagination.has_prev %}
+        <li class="page-item">
+            <a class="page-link" href="{{ url_for('listing.index', page=pagination.prev_num, **filter_args) }}">Previous</a>
+        </li>
+        {% endif %}
+        <li class="page-item disabled">
+            <span class="page-link">Page {{ pagination.page }} of {{ pagination.pages }} ({{ pagination.total }} listings)</span>
+        </li>
+        {% if pagination.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="{{ url_for('listing.index', page=pagination.next_num, **filter_args) }}">Next</a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+{% else %}
+<p>No listings match your search.</p>
+{% endif %}
 {% endblock %}

@@ -27,9 +27,6 @@ def test_register_success(app_context):
     assert user is not None
     assert error is None
     assert user.email == email
-    # Clean up
-    db.session.delete(user)
-    db.session.commit()
 
 
 def test_register_duplicate_email(app_context):
@@ -41,8 +38,6 @@ def test_register_duplicate_email(app_context):
     assert user2 is None
     assert "already registered" in error.lower()
 
-    db.session.delete(user1)
-    db.session.commit()
 
 
 # ------------------- Login Tests -------------------
@@ -57,10 +52,6 @@ def test_login_success(app_context):
     assert error is None
     assert user.email == email
 
-    user = get_user_by_email(email)
-    if user:
-        db.session.delete(user)
-        db.session.commit()
 
 
 def test_login_wrong_password(app_context):
@@ -73,10 +64,6 @@ def test_login_wrong_password(app_context):
     assert user is None
     assert "invalid" in error.lower()
 
-    user = get_user_by_email(email)
-    if user:
-        db.session.delete(user)
-        db.session.commit()
 
 
 # ------------------- Lockout Test -------------------
@@ -104,10 +91,6 @@ def test_account_lockout_after_failed_attempts(app_context):
     assert "locked" in error.lower()
 
     # Clean up
-    user = get_user_by_email(email)
-    if user:
-        db.session.delete(user)
-        db.session.commit()
 
 
 # ------------------- Logout & Session Tests -------------------
@@ -138,10 +121,6 @@ def test_logout_clears_session(app_context):
             assert 'role' not in sess
 
     # Clean up
-    user = get_user_by_email(email)
-    if user:
-        db.session.delete(user)
-        db.session.commit()
 
 
 def test_protected_route_redirects_to_login(app_context):

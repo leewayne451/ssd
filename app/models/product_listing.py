@@ -1,8 +1,17 @@
+"""Product listing entity (FR-05..07)."""
+
 from app.extensions import db
 from app.models.enums import ApprovalStatus, ListingCondition, WorkflowStatus
 
 
 class ProductListing(db.Model):
+    """A luxury item for sale (FR-05..07).
+
+    approval_status gates public visibility — hidden until admin approval
+    (SFR-05). workflow_status mirrors the item through the D1 H-3 lifecycle
+    so a committed/sold one-of-a-kind piece can never be committed twice
+    (SFR-09). reported/report_reason feed the moderation queue (FR-14).
+    """
     __tablename__ = "product_listings"
 
     id = db.Column(db.Integer, primary_key=True)
@@ -16,5 +25,8 @@ class ProductListing(db.Model):
     approval_status = db.Column(db.Enum(ApprovalStatus), nullable=False, default=ApprovalStatus.PENDING)
     workflow_status = db.Column(db.Enum(WorkflowStatus), nullable=False, default=WorkflowStatus.AVAILABLE)
     is_active = db.Column(db.Boolean, nullable=False, default=True)
+    # FR-14: buyers can flag a listing as suspicious for admin review.
+    reported = db.Column(db.Boolean, nullable=False, default=False)
+    report_reason = db.Column(db.Text)
     created_at = db.Column(db.DateTime, nullable=False, server_default=db.func.now())
     updated_at = db.Column(db.DateTime, nullable=False, server_default=db.func.now(), onupdate=db.func.now())

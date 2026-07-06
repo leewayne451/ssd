@@ -1,3 +1,7 @@
+"""Data/Storage layer — imports every entity so the SQLAlchemy metadata is
+complete for create_all() and Alembic autogeneration (D1 H-4 data model).
+"""
+
 from .user import User
 from .profile import Profile
 from .seller_application import SellerApplication

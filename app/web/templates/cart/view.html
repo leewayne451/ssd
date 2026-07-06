@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}Your cart — Château Collective{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-4">Your cart</h1>
+
+{% if rows %}
+<table class="table align-middle">
+    <thead>
+        <tr>
+            <th scope="col">Item</th>
+            <th scope="col">Price</th>
+            <th scope="col">Quantity</th>
+            <th scope="col">Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item, listing in rows %}
+        <tr>
+            <td>
+                {% if listing %}
+                <a href="{{ url_for('listing.detail', listing_id=listing.id) }}">{{ listing.title }}</a>
+                {% else %}
+                <span class="text-muted">Listing unavailable</span>
+                {% endif %}
+            </td>
+            <td>{% if listing %}${{ '%.2f' | format(listing.price) }}{% else %}—{% endif %}</td>
+            <td>
+                <form method="post" action="{{ url_for('cart.update_cart_item') }}" class="d-flex gap-2">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="listing_id" value="{{ item.listing_id }}">
+                    <input type="number" class="form-control form-control-sm w-qty"
+                           name="quantity" value="{{ item.quantity }}" min="1" max="99">
+                    <button type="submit" class="btn btn-sm btn-outline-secondary">Update</button>
+                </form>
+            </td>
+            <td>
+                <form method="post" action="{{ url_for('cart.remove_from_cart') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="listing_id" value="{{ item.listing_id }}">
+                    <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<div class="d-flex justify-content-between align-items-center">
+    <p class="h5 mb-0">Total: ${{ '%.2f' | format(total) }}</p>
+    <div class="d-flex gap-2">
+        <form method="post" action="{{ url_for('cart.clear_cart') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-outline-secondary">Clear cart</button>
+        </form>
+        <form method="post" action="{{ url_for('order.place_orders') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-primary">Commit to purchase</button>
+        </form>
+    </div>
+</div>
+{% else %}
+<p>Your cart is empty. <a href="{{ url_for('listing.index') }}">Browse listings</a>.</p>
+{% endif %}
+{% endblock %}

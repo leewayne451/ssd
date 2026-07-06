@@ -1,7 +1,13 @@
+"""User profile entity — personal data kept apart from credentials."""
+
 from app.extensions import db
 
 
 class Profile(db.Model):
+    """Personal data (name, phone, address, bio) split from the User
+    credential row (NFR-13/NFR-14). Created at registration; own-only
+    view/edit is enforced in profile_routes (SFR-03).
+    """
     __tablename__ = "profiles"
 
     id = db.Column(db.Integer, primary_key=True)

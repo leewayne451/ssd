@@ -1,4 +1,8 @@
-# Rate limiting — to be implemented with Flask-Limiter or custom middleware.
+"""Progressive account lockout schedule (FSR-05): escalating 5/15/60-minute
+locks driven by the failed-attempt counters on User. IP-level request
+throttling is enforced upstream by nginx (deploy/nginx/, FSR-23).
+"""
+
 from datetime import datetime, timedelta
 
 def get_lockout_duration(attempts: int) -> timedelta | None:

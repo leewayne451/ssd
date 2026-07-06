@@ -1,4 +1,11 @@
-# order_service — business logic layer.
+"""order_service — purchase commitment (FR-09).
+
+Orders are created from the caller's own cart at the server-side listing
+price (D1 9.3.1); unapproved or no-longer-available items are skipped, and
+the listing is flipped to 'committed' in the same unit of work so a
+one-of-a-kind item can never be committed twice (SFR-09).
+"""
+
 import logging
 from typing import List
 
@@ -25,9 +32,25 @@ def place_orders_from_cart(user) -> List[Order]:
 
     created = []
     for item in list(cart.items):
-        listing = ProductListing.query.get(item.listing_id)
+        listing = db.session.get(ProductListing, item.listing_id)
         if listing is None:
             # skip missing listings
+            continue
+
+        # SFR-09: a buyer can commit only to an approved, active listing —
+        # unapproved/deactivated items in a stale cart are skipped.
+        approval = getattr(listing.approval_status, "value", listing.approval_status)
+        if approval != "approved" or not listing.is_active:
+            logger.info("skipping unavailable listing %s at checkout", listing.id)
+            continue
+
+        # SFR-09 "available items": one-of-a-kind luxury goods — an item
+        # already committed to another buyer (or further along the workflow)
+        # can never be committed again.
+        item_state = getattr(listing.workflow_status, "value", listing.workflow_status)
+        if item_state != WorkflowStatus.AVAILABLE.value:
+            logger.info("skipping listing %s already in workflow state %s",
+                        listing.id, item_state)
             continue
 
         order = Order(
@@ -37,6 +60,9 @@ def place_orders_from_cart(user) -> List[Order]:
             workflow_status=WorkflowStatus.COMMITTED,
         )
         db.session.add(order)
+        # The listing enters the same workflow: nobody else can commit to it.
+        listing.workflow_status = WorkflowStatus.COMMITTED
+        db.session.add(listing)
         db.session.flush()  # get PK
 
         # record initial workflow history: order committed

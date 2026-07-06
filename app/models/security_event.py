@@ -1,7 +1,13 @@
+"""Security event entity (FSR-13)."""
+
 from app.extensions import db
 
 
 class SecurityEvent(db.Model):
+    """An application-level security signal (FSR-13): failed logins,
+    lockouts, access denials, rejected sessions, listing reports…
+    Aggregated on /admin/security (NFSR-20 alert surface).
+    """
     __tablename__ = "security_events"
 
     id = db.Column(db.Integer, primary_key=True)

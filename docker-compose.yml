@@ -25,6 +25,14 @@ services:
       DATABASE_URL: sqlite:////app/instance/chateau.db
       UPLOAD_DIR: /app/uploads
       LOG_DIR: /app/logs
+      # Optional bootstrap admin: set ADMIN_EMAIL in the same .env to
+      # auto-provision an administrator on first startup. The entrypoint's
+      # idempotent `flask seed-admin` generates a SINGLE-USE password,
+      # prints it once to this container's log, and the first login forces
+      # rotation — no secret lives in .env or this environment. An explicit
+      # ADMIN_PASSWORD is accepted for local development only.
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
     volumes:
       - app-instance:/app/instance
       - app-uploads:/app/uploads

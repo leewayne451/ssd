@@ -18,14 +18,15 @@ def test_security_headers_present_on_every_response(client):
 
 
 def test_csp_restricts_default_and_script_src(client):
-    """Positive: CSP locks scripts/styles down to self + the pinned CDN,
-    i.e. it would NOT allow an arbitrary attacker-controlled script host."""
+    """Positive: CSP locks scripts/styles down to 'self' only — Bootstrap is
+    self-hosted, so no third-party host (not even a CDN) may serve script."""
     resp = client.get("/ping")
     csp = resp.headers.get("Content-Security-Policy", "")
 
     assert "default-src 'self'" in csp
-    assert "script-src 'self' https://cdn.jsdelivr.net" in csp
-    # Negative: no wildcard script source and no inline-script allowance
+    assert "script-src 'self';" in csp
+    # Negative: no CDN, no wildcard script source, no inline-script allowance
+    assert "cdn.jsdelivr.net" not in csp
     assert "script-src *" not in csp
     assert "unsafe-inline" not in csp
 

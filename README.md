@@ -23,7 +23,7 @@ Requires Python 3.12+.
 
 ```bash
 git clone <repository-url>
-cd ICT2216_Secure-Software-Development
+cd ssd
 
 # 1. Create and activate a virtual environment
 python -m venv .venv
@@ -39,12 +39,33 @@ cp .env.example .env               # Windows PowerShell: Copy-Item .env.example 
 # 4. Apply database migrations (SQLite at instance/chateau.db)
 flask db upgrade
 
-# 5. Run the development server
+# 5. Create the administrator account (no in-app path to the admin role exists).
+#    Email-only prints a SINGLE-USE password and forces rotation on first login;
+#    for local dev you may pass an explicit --password instead.
+flask seed-admin --email admin@example.com
+
+# 6. Run the development server
 python manage.py
 ```
 
 The `.env.example` defaults are fine for local development. Set a strong
 `SECRET_KEY` before running anywhere else.
+
+### Admin account & 2FA
+
+Registration always creates a buyer — the bootstrap administrator is
+provisioned with the idempotent `flask seed-admin` command (step 5 above; the
+Docker entrypoint runs it automatically on every start using `ADMIN_EMAIL`
+from `.env`). The recommended email-only mode generates a strong
+**single-use** password, prints it exactly once (terminal locally,
+`docker compose logs web` in production), and quarantines the account behind
+a **forced password change** — nothing else is reachable until the account
+sets its own password, so the bootstrap value is dead after first login and
+no secret is ever stored in `.env`. After rotating, the first visit to
+`/admin` walks the account through TOTP two-factor enrolment — scan the QR
+code with any authenticator app (Google Authenticator, Aegis, 1Password…);
+no admin action works until 2FA is verified. Every logged-in user can rotate
+their own password at `/auth/change-password` (linked from their profile).
 
 ## Testing
 

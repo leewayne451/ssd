@@ -34,6 +34,28 @@ Internet ──▶ nginx (:80/:443, TLS)  ──▶  web (Gunicorn :8000, Flask)
    printf 'SECRET_KEY=%s\n' "$(python3 -c 'import secrets; print(secrets.token_hex(32))')" > .env
    ```
    > Keep this value stable — regenerating it invalidates all user sessions.
+
+   Add the bootstrap administrator's **email only** to the same `.env` —
+   never a password:
+   ```bash
+   printf 'ADMIN_EMAIL=%s\n' 'admin@example.com' >> .env
+   ```
+   On the next `docker compose up` the entrypoint's idempotent
+   `flask seed-admin` creates the account with a strong **single-use**
+   password and prints it once to the container log. Retrieve it, log in,
+   and the app forces a password change before anything else is reachable:
+   ```bash
+   docker compose logs web | grep 'SINGLE-USE'
+   ```
+   > Why this is safe: the credential never exists in `.env`, shell history
+   > or the container environment (`docker inspect` shows nothing), and the
+   > logged value is dead the moment the forced rotation completes — the
+   > account is quarantined to the change-password page until then. Enrol
+   > TOTP 2FA at `/admin` right after rotating (FSR-01); the quarantine
+   > runs first, so 2FA enrolment cannot be hijacked with the bootstrap
+   > credential. Existing accounts are never touched on later restarts.
+   > To provision on an ALREADY-running stack without a restart:
+   > `docker compose exec web flask seed-admin --email admin@example.com`
 4. **Bring the stack up (HTTP first):**
    ```bash
    docker compose up -d --build

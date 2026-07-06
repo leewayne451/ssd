@@ -1,4 +1,6 @@
-from flask import url_for
+"""Route registration: attaches every blueprint of the web layer plus the
+error handlers and small template helpers to the app.
+"""
 
 from .public_routes import public_bp
 from .auth_routes import auth_bp
@@ -16,21 +18,12 @@ from .error_routes import register_error_handlers
 
 
 def register_routes(app):
+    """Register all blueprints, template helpers and error handlers on `app`."""
     app.register_blueprint(public_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(profile_bp)
     app.register_blueprint(seller_bp)
     app.register_blueprint(listing_bp)
-
-    @app.context_processor
-    def inject_nav_urls():
-        return {
-            'home_url': url_for('public.index'),
-            'create_listing_url': url_for('listing.create'),
-            'auth_login_url': url_for('auth.login'),
-            'auth_register_url': url_for('auth.register'),
-            'auth_logout_url': url_for('auth.logout'),
-        }
 
     # Register helper to fetch uploads for templates
     from app.models.uploaded_file import UploadedFile

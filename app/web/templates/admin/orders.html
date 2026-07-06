@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}Admin · Orders — Château Collective{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-4">Order &amp; authentication management</h1>
+
+<h2 class="h5">Awaiting in-house authentication</h2>
+<table class="table align-middle mb-4">
+    <thead><tr><th>Order</th><th>Committed price</th><th>Authentication outcome</th></tr></thead>
+    <tbody>
+        {% for o in awaiting %}
+        <tr>
+            <td>#{{ o.id }}</td>
+            <td>${{ '%.2f' | format(o.committed_price) }}</td>
+            <td>
+                <form method="post" action="{{ url_for('admin.authenticate_order', order_id=o.id) }}" class="d-flex gap-2 align-items-center">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <select name="outcome" class="form-select form-select-sm w-auto">
+                        <option value="authentic">Authentic</option>
+                        <option value="counterfeit">Counterfeit</option>
+                    </select>
+                    <input type="text" name="notes" class="form-control form-control-sm" placeholder="Notes" maxlength="2000">
+                    <button type="submit" class="btn btn-sm btn-primary">Record</button>
+                </form>
+            </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="3" class="text-muted">No orders awaiting authentication.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<h2 class="h5">Recent orders</h2>
+{# Workflow updates post to the same audited state machine as every other
+   actor (FR-15); only transitions legal from the current state are offered.
+   Authentication verdicts + notes are an admin-only view (SFR-14). #}
+<table class="table align-middle">
+    <thead><tr><th>Order</th><th>Workflow</th><th>Payment</th><th>Authentication</th><th>Actions</th></tr></thead>
+    <tbody>
+        {% for o in recent %}
+        <tr>
+            <td>#{{ o.id }}</td>
+            <td><span class="badge text-bg-secondary">{{ o.workflow_status.value }}</span></td>
+            <td><span class="badge text-bg-light">{{ o.payment_status.value }}</span></td>
+            <td>
+                {% set r = reviews.get(o.id) %}
+                {% if r %}
+                    {% if r.result.value == 'authentic' %}
+                    <span class="badge text-bg-success">authentic</span>
+                    {% else %}
+                    <span class="badge text-bg-danger">counterfeit</span>
+                    {% endif %}
+                    {% if r.notes %}<div class="small text-muted cell-clamp-sm">{{ r.notes }}</div>{% endif %}
+                {% else %}
+                <span class="text-muted">—</span>
+                {% endif %}
+            </td>
+            <td>
+                <div class="d-flex gap-2 flex-wrap">
+                    {% if next_states.get(o.id) %}
+                    <form method="post" action="{{ url_for('admin.update_order_status', order_id=o.id) }}" class="d-flex gap-2">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <select name="new_status" class="form-select form-select-sm w-auto">
+                            {% for s in next_states[o.id] %}
+                            <option value="{{ s }}">{{ s.replace('_', ' ') }}</option>
+                            {% endfor %}
+                        </select>
+                        <button type="submit" class="btn btn-sm btn-outline-primary">Update</button>
+                    </form>
+                    {% endif %}
+                    {% if o.payment_status.value == 'paid' %}
+                    <form method="post" action="{{ url_for('admin.refund_order', order_id=o.id) }}"
+                          data-confirm="Refund order #{{ o.id }}? The payment moves to 'refunded'.">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-sm btn-outline-danger">Refund</button>
+                    </form>
+                    {% endif %}
+                    {% if not next_states.get(o.id) and o.payment_status.value != 'paid' %}
+                    <span class="text-muted small">terminal</span>
+                    {% endif %}
+                </div>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

@@ -1,21 +1,101 @@
 {% extends "base.html" %}
+
+{% block title %}{{ listing.title }} — Château Collective{% endblock %}
+
 {% block content %}
-<h1>{{ listing.title }}</h1>
-<p>Price: {{ listing.price }}</p>
-<div>{{ listing.description }}</div>
-{% if listing.id %}
-	{% set uploads = namespace(items=[]) %}
-	{# Load uploaded files for this listing if any via a helper registered in app globals #}
-	{% if get_listing_uploads is defined %}
-		{% set uploads.items = get_listing_uploads(listing.id) %}
-	{% endif %}
-	{% if uploads.items %}
-		<div class="mt-3">
-			<h5>Images</h5>
-			{% for f in uploads.items %}
-				<img src="{{ url_for('listing.uploaded_file', filename=f.stored_filename) }}" alt="{{ f.original_filename }}" class="img-fluid" style="max-width:200px;">
-			{% endfor %}
-		</div>
-	{% endif %}
+<h1 class="h3 mb-1">{{ listing.title }}</h1>
+{% if rating %}
+<p class="mb-3">★ {{ rating.avg }} <span class="text-muted">({{ rating.count }} verified review{{ 's' if rating.count != 1 }})</span></p>
+{% else %}
+<p class="mb-3 text-muted small">No reviews yet</p>
 {% endif %}
+
+{% if listing.approval_status != 'approved' %}
+<div class="alert alert-warning">
+    This listing is <strong>{{ listing.approval_status }}</strong> and not publicly visible.
+</div>
+{% endif %}
+
+{% if listing.workflow_status == 'sold' %}
+<div class="alert alert-secondary">This item has been <strong>sold</strong>.</div>
+{% elif listing.workflow_status == 'rejected' %}
+<div class="alert alert-secondary">This item did not pass in-house authentication and is no longer for sale.</div>
+{% elif listing.workflow_status != 'available' %}
+<div class="alert alert-info">This item is <strong>reserved</strong> — another buyer has committed to it and it is moving through the authentication workflow.</div>
+{% endif %}
+
+<dl class="row">
+    <dt class="col-sm-3">Price</dt>
+    <dd class="col-sm-9">${{ '%.2f' | format(listing.price) }}</dd>
+
+    <dt class="col-sm-3">Brand</dt>
+    <dd class="col-sm-9">{{ listing.brand }}</dd>
+
+    <dt class="col-sm-3">Category</dt>
+    <dd class="col-sm-9">{{ listing.category }}</dd>
+
+    <dt class="col-sm-3">Condition</dt>
+    <dd class="col-sm-9">{{ (listing.condition or '').replace('_', ' ') }}</dd>
+
+    <dt class="col-sm-3">Seller</dt>
+    <dd class="col-sm-9">Seller #{{ listing.seller_id }}</dd>
+</dl>
+
+<div class="mb-4">{{ listing.description }}</div>
+
+{% if images %}
+<div class="mb-4">
+    <h2 class="h5">Images</h2>
+    <div class="d-flex flex-wrap gap-2">
+        {% for f in images %}
+        <img src="{{ url_for('listing.media', filename=f.stored_filename) }}"
+             alt="{{ f.original_filename }}" class="img-thumbnail thumb-200">
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{% if session.get('user_id') and listing.approval_status == 'approved' %}
+<div class="d-flex gap-2">
+    {# Add-to-cart only while the item is genuinely available — the same
+       rule is enforced server-side in cart_service/order_service (SFR-09). #}
+    {% if listing.workflow_status == 'available' %}
+    <form method="post" action="{{ url_for('cart.add_to_cart') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="listing_id" value="{{ listing.id }}">
+        <button type="submit" class="btn btn-primary">Add to cart</button>
+    </form>
+    {% endif %}
+    <form method="post" action="{{ url_for('listing.report', listing_id=listing.id) }}" class="d-flex gap-2">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="text" name="reason" class="form-control"
+               placeholder="Why is this listing suspicious?" maxlength="1000">
+        <button type="submit" class="btn btn-outline-warning text-nowrap">Report listing</button>
+    </form>
+</div>
+{% endif %}
+
+{# --- M8: reviews from completed purchases (FR-16). Comments are user
+       content — rendered through Jinja autoescape, never unescaped (SDR-02). --- #}
+<div class="mt-5">
+    <h2 class="h5">Reviews</h2>
+    {% if reviews %}
+    <ul class="list-group">
+        {% for r in reviews %}
+        <li class="list-group-item">
+            <div class="d-flex justify-content-between">
+                <strong>{{ r.rating }}/5</strong>
+                <small class="text-muted">
+                    Buyer #{{ r.buyer_id }} ·
+                    {{ r.created_at.strftime('%Y-%m-%d') if r.created_at else '' }}
+                </small>
+            </div>
+            {% if r.comment %}<p class="mb-0 mt-1">{{ r.comment }}</p>{% endif %}
+        </li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p class="text-muted">No reviews yet — reviews come only from verified completed purchases.</p>
+    {% endif %}
+</div>
 {% endblock %}

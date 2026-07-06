@@ -1,7 +1,12 @@
+"""Purchase-gated review entity (FR-16)."""
+
 from app.extensions import db
 
 
 class Review(db.Model):
+    """A purchase-gated review (FR-16): unique per order, rating 1–5
+    validated in review_service, comment autoescaped at render (SDR-02).
+    """
     __tablename__ = "reviews"
 
     id = db.Column(db.Integer, primary_key=True)

@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}My sales — Château Collective{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-4">My sales</h1>
+<p class="text-muted">
+    Orders placed on your listings. Accept an order to start preparing it,
+    then record the tracking reference when it ships — the item is
+    authenticated in-house before checkout completes.
+</p>
+
+{% if rows %}
+<table class="table align-middle">
+    <thead>
+        <tr>
+            <th scope="col">Order #</th>
+            <th scope="col">Listing</th>
+            <th scope="col">Price</th>
+            <th scope="col">Status</th>
+            <th scope="col">Tracking</th>
+            <th scope="col">Action</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for order, listing, shipment in rows %}
+        <tr>
+            <td>{{ order.id }}</td>
+            <td><a href="{{ url_for('listing.detail', listing_id=listing.id) }}">{{ listing.title }}</a></td>
+            <td>${{ '%.2f' | format(order.committed_price) }}</td>
+            <td><span class="badge text-bg-secondary">{{ order.workflow_status.value }}</span></td>
+            <td>
+                {% if shipment and shipment.tracking_number %}
+                <code>{{ shipment.tracking_number }}</code>
+                {% else %}
+                <span class="text-muted">—</span>
+                {% endif %}
+            </td>
+            <td>
+                {% if order.workflow_status.value == 'committed' %}
+                <form method="post" action="{{ url_for('order.transition_order_status', order_id=order.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="new_status" value="awaiting_shipment">
+                    <button type="submit" class="btn btn-sm btn-outline-primary">Accept order</button>
+                </form>
+                {% elif order.workflow_status.value == 'awaiting_shipment' %}
+                <form method="post" action="{{ url_for('shipment.mark_shipped', order_id=order.id) }}"
+                      class="d-flex gap-2">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="text" class="form-control form-control-sm" name="tracking_number"
+                           placeholder="Tracking reference" required maxlength="100">
+                    <button type="submit" class="btn btn-sm btn-outline-primary text-nowrap">Mark shipped</button>
+                </form>
+                {% else %}
+                <span class="text-muted small">No action — awaiting platform workflow</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>No orders on your listings yet.</p>
+{% endif %}
+{% endblock %}

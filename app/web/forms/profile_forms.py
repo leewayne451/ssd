@@ -1,4 +1,5 @@
-# profile_forms — WTForms validation.
+"""Profile edit form (FR-03) with length caps from input_validation (SDR-01)."""
+
 from flask_wtf import FlaskForm
 from wtforms import StringField, TextAreaField, SubmitField
 from wtforms.validators import DataRequired, Length, Optional

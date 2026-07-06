@@ -1,25 +1,121 @@
-from flask import Blueprint, render_template, request
+"""Admin surface (/admin/*) — FR-12..FR-15 plus the FR-04/FR-17 review
+queues, the security dashboard and M12 backups.
 
+EVERY view in this blueprint carries role_required("admin") +
+admin_2fa_required (D1 9.3.3 dedicated admin routes; FSR-01/SFR-12), and
+every privileged action writes an AuditLog row in its service. Keep the
+decorator pair on anything added here.
+"""
+
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
+
+from app.extensions import db
 from app.security.rbac import role_required
 from app.security.admin_2fa import admin_2fa_required
 from app.models.audit_log import AuditLog
 from app.models.security_event import SecurityEvent
+from app.models.user import User
+from app.models.product_listing import ProductListing
+from app.models.order import Order
+from app.models.enums import ApprovalStatus, WorkflowStatus
+from app.services import admin_service, backup_service, dispute_service, seller_service
+from app.services.auth_service import get_current_user
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
+
+# Every route in this blueprint carries role_required("admin") + admin_2fa_required.
+_VALID_WORKFLOW_VALUES = {s.value for s in WorkflowStatus}
 
 @admin_bp.route("/")
 @role_required("admin")
 @admin_2fa_required
 def index():
     """
-    Admin landing page — gated by admin role *and* a verified second factor.
-
-    This is the canonical demonstration of the M2 admin-2FA control. M5 expands
-    the admin area (dashboard, log viewer, etc.); any view added to this
-    blueprint should keep the ``@role_required("admin")`` + ``@admin_2fa_required``
-    decorator pair so the whole /admin surface stays protected.
+    Admin dashboard (FR-12) — gated by admin role *and* a verified second
+    factor. Live queue counters give the "dashboard" view D1 asks for; every
+    view added to this blueprint must keep the ``@role_required("admin")`` +
+    ``@admin_2fa_required`` decorator pair so the whole /admin surface stays
+    protected.
     """
-    return render_template("admin/index.html")
+    from datetime import datetime, timedelta, timezone
+
+    from app.models.dispute import Dispute
+    from app.models.enums import AccountStatus, DisputeStatus
+    from app.models.seller_application import SellerApplication
+
+    day_ago = datetime.now(timezone.utc) - timedelta(hours=24)
+    counts = {
+        "users_total": User.query.count(),
+        "users_suspended": User.query.filter_by(status=AccountStatus.SUSPENDED).count(),
+        "listings_pending": ProductListing.query.filter_by(
+            approval_status=ApprovalStatus.PENDING).count(),
+        "listings_reported": ProductListing.query.filter_by(reported=True).count(),
+        "applications_pending": SellerApplication.query.filter_by(
+            status=ApprovalStatus.PENDING).count(),
+        "disputes_open": Dispute.query.filter(Dispute.status.in_(
+            [DisputeStatus.OPEN, DisputeStatus.UNDER_REVIEW])).count(),
+        "orders_awaiting_auth": Order.query.filter_by(
+            workflow_status=WorkflowStatus.UNDER_AUTHENTICATION).count(),
+        "events_24h": SecurityEvent.query.filter(
+            SecurityEvent.created_at >= day_ago).count(),
+    }
+    return render_template("admin/index.html", counts=counts)
+
+
+@admin_bp.route("/security")
+@role_required("admin")
+@admin_2fa_required
+def security():
+    """
+    Security dashboard (NFSR-20 / D1 §9.3.6 alert surface).
+
+    Aggregates the application-level abuse signals the platform records as
+    SecurityEvent rows (lockouts, access denials, rejected sessions, listing
+    reports, rejected workflow transitions…). Edge-level rate-limit and
+    bad-bot blocks are enforced by nginx and live in its logs on the VM —
+    see docs/d2/evidence/rate-limiting.md — so they are framed here, not
+    charted from the DB.
+    """
+    from datetime import datetime, timedelta, timezone
+
+    now = datetime.now(timezone.utc)
+    day_ago = now - timedelta(hours=24)
+    week_ago = now - timedelta(days=7)
+
+    def _counts_since(cutoff=None):
+        query = db.session.query(
+            SecurityEvent.event_type, db.func.count(SecurityEvent.id)
+        )
+        if cutoff is not None:
+            query = query.filter(SecurityEvent.created_at >= cutoff)
+        return dict(query.group_by(SecurityEvent.event_type).all())
+
+    total_by_type = _counts_since(None)
+    day_by_type = _counts_since(day_ago)
+    week_by_type = _counts_since(week_ago)
+
+    max_total = max(total_by_type.values(), default=0)
+    rows = [
+        {
+            "event_type": event_type,
+            "total": total,
+            "last_7d": week_by_type.get(event_type, 0),
+            "last_24h": day_by_type.get(event_type, 0),
+            # Width decile for the CSS meter (0-100 in steps of 10) — no
+            # inline styles, our CSP forbids them.
+            "decile": int(round((total / max_total) * 10)) * 10 if max_total else 0,
+        }
+        for event_type, total in sorted(
+            total_by_type.items(), key=lambda item: item[1], reverse=True
+        )
+    ]
+
+    recent = (
+        SecurityEvent.query.order_by(
+            SecurityEvent.created_at.desc(), SecurityEvent.id.desc()
+        ).limit(20).all()
+    )
+    return render_template("admin/security.html", rows=rows, recent=recent)
 
 @admin_bp.route("/logs")
 @role_required("admin")
@@ -46,3 +142,296 @@ def logs():
         security_events=security_events,
         page=page,
     )
+
+
+# --- FR-13: user management / suspension ----------------------------------
+
+@admin_bp.route("/users")
+@role_required("admin")
+@admin_2fa_required
+def users():
+    """User management list with suspension + lockout state (FR-13/FSR-05)."""
+    from app.services.user_service import is_account_locked
+
+    all_users = User.query.order_by(User.created_at.desc()).all()
+    locked_ids = {u.id for u in all_users if is_account_locked(u)}
+    return render_template("admin/users.html", users=all_users, locked_ids=locked_ids)
+
+
+@admin_bp.route("/users/<int:user_id>/unlock", methods=["POST"])
+@role_required("admin")
+@admin_2fa_required
+def unlock_user(user_id):
+    """Clear a brute-force lockout early (audited)."""
+    admin = get_current_user()
+    if admin_service.unlock_user(admin, user_id) is None:
+        flash("User not found.", "danger")
+    else:
+        flash("Account lockout cleared.", "success")
+    return redirect(url_for("admin.users"))
+
+
+@admin_bp.route("/users/<int:user_id>/suspend", methods=["POST"])
+@role_required("admin")
+@admin_2fa_required
+def suspend_user(user_id):
+    """Suspend an account; rbac enforces it on the next request (FR-13)."""
+    admin = get_current_user()
+    if admin_service.suspend_user(admin, user_id) is None:
+        flash("User not found.", "danger")
+    else:
+        flash("User suspended.", "success")
+    return redirect(url_for("admin.users"))
+
+
+@admin_bp.route("/users/<int:user_id>/unsuspend", methods=["POST"])
+@role_required("admin")
+@admin_2fa_required
+def unsuspend_user(user_id):
+    """Reactivate a suspended account (audited)."""
+    admin = get_current_user()
+    if admin_service.unsuspend_user(admin, user_id) is None:
+        flash("User not found.", "danger")
+    else:
+        flash("User reactivated.", "success")
+    return redirect(url_for("admin.users"))
+
+
+# --- FR-14: listing monitoring / approval ---------------------------------
+
+@admin_bp.route("/listings")
+@role_required("admin")
+@admin_2fa_required
+def listings():
+    """Moderation queues: pending approvals + buyer-reported listings (FR-14)."""
+    pending = ProductListing.query.filter_by(approval_status=ApprovalStatus.PENDING).all()
+    reported = ProductListing.query.filter_by(reported=True).all()
+    return render_template("admin/listings.html", pending=pending, reported=reported)
+
+
+@admin_bp.route("/listings/<int:listing_id>/approve", methods=["POST"])
+@role_required("admin")
+@admin_2fa_required
+def approve_listing(listing_id):
+    """Approve a pending listing (audited)."""
+    admin = get_current_user()
+    if admin_service.approve_listing(admin, listing_id) is None:
+        flash("Listing not found.", "danger")
+    else:
+        flash("Listing approved.", "success")
+    return redirect(url_for("admin.listings"))
+
+
+@admin_bp.route("/listings/<int:listing_id>/reject", methods=["POST"])
+@role_required("admin")
+@admin_2fa_required
+def reject_listing(listing_id):
+    """Reject a listing with an internal reason (audited, SFR-14)."""
+    admin = get_current_user()
+    reason = request.form.get("reason", "")
+    if admin_service.reject_listing(admin, listing_id, reason) is None:
+        flash("Listing not found.", "danger")
+    else:
+        flash("Listing rejected.", "success")
+    return redirect(url_for("admin.listings"))
+
+
+# --- FR-04 / SFR-04: seller application review -----------------------------
+
+@admin_bp.route("/seller-applications")
+@role_required("admin")
+@admin_2fa_required
+def seller_applications():
+    """Pending seller applications queue (FR-04/SFR-04)."""
+    pending = seller_service.list_pending_applications()
+    return render_template("admin/seller_applications.html", pending=pending)
+
+
+@admin_bp.route("/seller-applications/<int:application_id>/approve", methods=["POST"])
+@role_required("admin")
+@admin_2fa_required
+def approve_seller_application(application_id):
+    """Approve and promote the applicant to seller (audited)."""
+    admin = get_current_user()
+    try:
+        seller_service.approve_application(admin, application_id)
+        flash("Application approved — the user is now a verified seller.", "success")
+    except ValueError as e:
+        flash(str(e), "danger")
+    return redirect(url_for("admin.seller_applications"))
+
+
+@admin_bp.route("/seller-applications/<int:application_id>/reject", methods=["POST"])
+@role_required("admin")
+@admin_2fa_required
+def reject_seller_application(application_id):
+    """Reject a pending application (audited)."""
+    admin = get_current_user()
+    try:
+        seller_service.reject_application(admin, application_id)
+        flash("Application rejected.", "success")
+    except ValueError as e:
+        flash(str(e), "danger")
+    return redirect(url_for("admin.seller_applications"))
+
+
+# --- M12: backup & recovery (NFR-03 / FSR-25/26) ---------------------------
+
+@admin_bp.route("/backups")
+@role_required("admin")
+@admin_2fa_required
+def backups():
+    """Snapshot list with create/restore controls (NFR-03/FSR-25/26)."""
+    return render_template("admin/backups.html", backups=backup_service.list_backups())
+
+
+@admin_bp.route("/backups/create", methods=["POST"])
+@role_required("admin")
+@admin_2fa_required
+def create_backup():
+    """Take a consistent snapshot via the SQLite online backup API."""
+    record = backup_service.create_backup(get_current_user())
+    flash(f"Backup created: {record.filename}", "success")
+    return redirect(url_for("admin.backups"))
+
+
+@admin_bp.route("/backups/restore", methods=["POST"])
+@role_required("admin")
+@admin_2fa_required
+def restore_backup():
+    """Restore from a validated, server-named snapshot (audited)."""
+    try:
+        record = backup_service.restore_backup(
+            get_current_user(), request.form.get("filename", "")
+        )
+        flash(f"Database restored from {record.filename}.", "success")
+    except ValueError as e:
+        flash(str(e), "danger")
+    return redirect(url_for("admin.backups"))
+
+
+# --- FR-15 + authentication review: order/workflow management -------------
+
+@admin_bp.route("/orders")
+@role_required("admin")
+@admin_2fa_required
+def orders():
+    """Authentication queue + recent orders with workflow and refund controls (FR-15)."""
+    from app.models.authentication_review import AuthenticationReview
+    from app.services.workflow_service import ALLOWED_TRANSITIONS
+
+    awaiting = Order.query.filter_by(
+        workflow_status=WorkflowStatus.UNDER_AUTHENTICATION
+    ).all()
+    recent = Order.query.order_by(Order.created_at.desc()).limit(50).all()
+
+    # Latest authentication verdict per order (admin-only surface — the
+    # moderation notes shown here never reach buyer/seller pages, SFR-14).
+    reviews = {}
+    for review in AuthenticationReview.query.order_by(
+        AuthenticationReview.reviewed_at.asc(), AuthenticationReview.id.asc()
+    ).all():
+        reviews[review.order_id] = review
+
+    # Legal next states per order so the manual-update form (FR-15) only
+    # offers transitions the audited state machine could accept.
+    next_states = {
+        o.id: sorted(ALLOWED_TRANSITIONS.get(o.workflow_status.value, set()))
+        for o in recent
+    }
+    return render_template(
+        "admin/orders.html",
+        awaiting=awaiting,
+        recent=recent,
+        reviews=reviews,
+        next_states=next_states,
+    )
+
+
+@admin_bp.route("/orders/<int:order_id>/refund", methods=["POST"])
+@role_required("admin")
+@admin_2fa_required
+def refund_order(order_id):
+    """Refund a paid order (D1 §9.3.4 Paid -> Refunded, admin-only)."""
+    from app.services import checkout_service
+
+    admin = get_current_user()
+    order = db.session.get(Order, order_id)
+    if order is None:
+        flash("Order not found.", "danger")
+        return redirect(url_for("admin.orders"))
+    try:
+        checkout_service.refund_order(order, admin)
+        flash(f"Order #{order.id} refunded.", "success")
+    except (ValueError, PermissionError) as e:
+        flash(str(e), "danger")
+    return redirect(url_for("admin.orders"))
+
+
+@admin_bp.route("/orders/<int:order_id>/status", methods=["POST"])
+@role_required("admin")
+@admin_2fa_required
+def update_order_status(order_id):
+    """Manual workflow transition through the audited state machine (FR-15)."""
+    admin = get_current_user()
+    new_status = request.form.get("new_status", "")
+    if new_status not in _VALID_WORKFLOW_VALUES:
+        flash("Invalid workflow status.", "danger")
+        return redirect(url_for("admin.orders"))
+    try:
+        admin_service.update_order_workflow(admin, order_id, new_status)
+        flash("Order workflow updated.", "success")
+    except (ValueError, PermissionError) as e:
+        flash(str(e), "danger")
+    return redirect(url_for("admin.orders"))
+
+
+# --- FR-17 / SFR-17: dispute resolution ------------------------------------
+
+@admin_bp.route("/disputes")
+@role_required("admin")
+@admin_2fa_required
+def disputes():
+    """Open dispute queue plus recently-closed history (FR-17)."""
+    return render_template(
+        "admin/disputes.html",
+        open_disputes=dispute_service.list_open_disputes(),
+        closed_disputes=dispute_service.list_closed_disputes(),
+    )
+
+
+@admin_bp.route("/disputes/<int:dispute_id>/resolve", methods=["POST"])
+@role_required("admin")
+@admin_2fa_required
+def resolve_dispute(dispute_id):
+    """Close a dispute as resolved/dismissed with notes (audited, FSR-10)."""
+    admin = get_current_user()
+    outcome = request.form.get("outcome", "")
+    notes = request.form.get("notes", "")
+    try:
+        dispute_service.resolve_dispute(admin, dispute_id, outcome, notes)
+        flash(f"Dispute {outcome}.", "success")
+    except ValueError as e:
+        flash(str(e), "danger")
+    return redirect(url_for("admin.disputes"))
+
+
+@admin_bp.route("/orders/<int:order_id>/authenticate", methods=["POST"])
+@role_required("admin")
+@admin_2fa_required
+def authenticate_order(order_id):
+    """In-house authentication outcome (D1 §9.3.5)."""
+    admin = get_current_user()
+    outcome = request.form.get("outcome", "")
+    notes = request.form.get("notes", "")
+    if outcome not in {"authentic", "counterfeit"}:
+        flash("Choose an authentication outcome.", "danger")
+        return redirect(url_for("admin.orders"))
+    try:
+        admin_service.record_authentication_review(
+            admin, order_id, is_authentic=(outcome == "authentic"), notes=notes
+        )
+        flash(f"Authentication recorded: {outcome}.", "success")
+    except ValueError as e:
+        flash(str(e), "danger")
+    return redirect(url_for("admin.orders"))

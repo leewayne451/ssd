@@ -1,7 +1,10 @@
+"""Shipment tracking entity (FR-10)."""
+
 from app.extensions import db
 
 
 class Shipment(db.Model):
+    """Seller-entered tracking reference for an order (FR-10); one per order."""
     __tablename__ = "shipments"
 
     id = db.Column(db.Integer, primary_key=True)

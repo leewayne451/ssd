@@ -1,8 +1,15 @@
+"""Password policy (FSR-02 / SFR-01): composition rules plus a zxcvbn
+strength floor so short, common or guessable passwords are rejected with
+actionable error messages.
+"""
+
 import re
 from zxcvbn import zxcvbn
 
 def validate_password(password: str) -> tuple[bool, str | None]:
     # 1. Length check (zxcvbn also checks this, but we keep our own)
+    """Return (ok, error): length + character-class rules, then a zxcvbn score floor that rejects common/guessable passwords (FSR-02).
+    """
     if len(password) < 8:
         return False, "Password must be at least 8 characters long."
     

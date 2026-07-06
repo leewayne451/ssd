@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}My disputes — Château Collective{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-4">My disputes</h1>
+
+{% if disputes %}
+<table class="table align-middle">
+    <thead>
+        <tr>
+            <th scope="col">Dispute #</th>
+            <th scope="col">Order</th>
+            <th scope="col">Reason</th>
+            <th scope="col">Status</th>
+            <th scope="col">Outcome</th>
+            <th scope="col">Raised</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for d in disputes %}
+        <tr>
+            <td>{{ d.id }}</td>
+            <td><a href="{{ url_for('order.order_detail', order_id=d.order_id) }}">#{{ d.order_id }}</a></td>
+            <td class="cell-clamp">{{ d.reason }}</td>
+            <td>
+                {% if d.status.value in ('open', 'under_review') %}
+                <span class="badge text-bg-warning">{{ d.status.value.replace('_', ' ') }}</span>
+                {% elif d.status.value == 'resolved' %}
+                <span class="badge text-bg-success">resolved</span>
+                {% else %}
+                <span class="badge text-bg-secondary">dismissed</span>
+                {% endif %}
+            </td>
+            <td class="cell-clamp-sm">{{ d.resolution_notes or '—' }}</td>
+            <td>{{ d.created_at.strftime('%Y-%m-%d %H:%M') if d.created_at else '—' }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>You have no disputes. You can raise one from the order's page if something went wrong.</p>
+{% endif %}
+
+<a class="btn btn-outline-secondary" href="{{ url_for('order.list_orders') }}">Back to orders</a>
+{% endblock %}

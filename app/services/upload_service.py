@@ -1,3 +1,8 @@
+"""upload_service — validated image persistence (SDR-04): runs
+file_validation, stores the file under a server-generated name in the
+instance uploads directory, and records an UploadedFile row.
+"""
+
 import os
 from pathlib import Path
 from typing import Tuple, Optional
